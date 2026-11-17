@@ -1,6 +1,6 @@
 # S2P-Extensions
 
-[English](README.md) · [S2P-Joystick-Macro](macro/README_zh-TW.md) · [開發擴充工具](docs/development.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
+[English](README.md) · [S2P-Joystick-Macro](macro/README_zh-TW.md) · [開發擴充工具](docs/development_zh-TW.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
 
 [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite) 的選用擴充工具集合。每個工具都是獨立程式，
 透過 S2P 的「擴充工具」介面（Windows Named Pipe，協定 v1）提交輸入或讀取控制器狀態；
@@ -31,4 +31,4 @@ python -m unittest discover -s tests
 
 ## 開發新工具
 
-見 [docs/development.md](docs/development.md)。
+見 [docs/development_zh-TW.md](docs/development_zh-TW.md)。

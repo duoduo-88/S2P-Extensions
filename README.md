@@ -39,4 +39,4 @@ otherwise it is skipped.
 
 ## Developing a new tool
 
-See [docs/development.md](docs/development.md) (Traditional Chinese).
+See [docs/development.md](docs/development.md).
