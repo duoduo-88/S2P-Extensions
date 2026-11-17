@@ -4,7 +4,7 @@
 
 The full protocol is described in S2P-XInput-Lite's
 [`docs/extensions-ipc.md`](https://github.com/duoduo-88/S2P-XInput-Lite/blob/v0.8.2/docs/extensions-ipc.md)
-(protocol v1, Traditional Chinese). This page shows how to build a tool with
+(protocol v1). This page shows how to build a tool with
 `sdk/s2p_ext`.
 
 ## Minimal example

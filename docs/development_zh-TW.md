@@ -2,7 +2,7 @@
 
 [English](development.md) · [S2P-Extensions](../README_zh-TW.md)
 
-完整協定：S2P-XInput-Lite [`docs/extensions-ipc.md`](https://github.com/duoduo-88/S2P-XInput-Lite/blob/v0.8.2/docs/extensions-ipc.md)（協定 v1）。本文件說明如何用 `sdk/s2p_ext` 開發工具。
+完整協定：S2P-XInput-Lite [`docs/extensions-ipc_zh-TW.md`](https://github.com/duoduo-88/S2P-XInput-Lite/blob/v0.8.2/docs/extensions-ipc_zh-TW.md)（協定 v1）。本文件說明如何用 `sdk/s2p_ext` 開發工具。
 
 ## 最小範例
 
