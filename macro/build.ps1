@@ -25,5 +25,6 @@ if ($LASTEXITCODE -ne 0) { throw "Tests failed; not building." }
 if ($LASTEXITCODE -ne 0) { throw "PyInstaller failed." }
 
 Copy-Item (Join-Path $repo "macro\README.md") $out -Force
+Copy-Item (Join-Path $repo "macro\README_zh-TW.md") $out -Force
 Write-Host "Built $out\S2P-Joystick-Macro.exe"
 Write-Host "Add this EXE to S2P-XInput-Lite > Extensions to let it connect."

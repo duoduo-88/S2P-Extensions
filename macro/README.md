@@ -1,80 +1,113 @@
 # S2P-Joystick-Macro
 
-S2P-XInput-Lite 的獨立擴充工具：錄製手把按鍵與搖桿操作，並在之後播放。它透過 S2P 的「擴充工具」介面
-送出輸入，本身不建立虛擬手把，也不修改 S2P。
+[繁體中文](README_zh-TW.md) · [S2P-Extensions](../README.md)
 
-## 使用聲明
+An independent extension tool for S2P-XInput-Lite that records controller
+button and stick input and plays it back later. It submits input through
+S2P's Extensions interface; it does not create a virtual controller of its
+own and does not modify S2P.
 
-- 使用本工具所產生的操作與結果，由使用者自行負責。
-- 部分遊戲或線上服務禁止巨集、自動化或外部輸入。使用前請先確認相關規範；在不允許的情況下使用，
-  可能導致帳號受限。
-- 本工具不包含任何規避反作弊系統的功能。
-- 第一次啟動時會顯示使用聲明，按「我已了解」後才會開始使用。
+## Notice
 
-## 安裝與連線
+- You are responsible for how you use this tool and for the results.
+- Some games and online services prohibit macros, automation or external
+  input. Check their rules before use; using it where it is not allowed may
+  get your account restricted.
+- This tool contains no feature to bypass any anti-cheat system.
+- The first launch shows this notice; choose **I understand** to start.
 
-1. 把 `S2P-Joystick-Macro.exe` 放在任意資料夾（巨集與設定會存在同一個資料夾的 `macros\` 與 `settings.json`）。
-2. 開啟 S2P-XInput-Lite →「擴充工具」，勾選「啟用擴充工具」，按「新增工具...」選擇 `S2P-Joystick-Macro.exe`。
-3. 要錄製時，在清單選取它，於「權限」勾選「允許讀取控制器狀態」（預設關閉）。權限變更後工具會自動重新連線。
-4. 開啟本工具（直接執行 EXE，或在 S2P 的擴充工具清單／系統匣選單按「開啟」）。
-   「狀態」區顯示「已連接 S2P」即可使用；S2P 未啟動時會自動等待並重試。
+## Install and connect
 
-## 在背景執行
+1. Put `S2P-Joystick-Macro.exe` in any folder. Macros and settings are kept
+   next to it in `macros\` and `settings.json`.
+2. In S2P-XInput-Lite, open **Extensions**, check **Enable Extensions**, select
+   **Add Tool...**, and choose `S2P-Joystick-Macro.exe`.
+3. To record, select it in the list and check **Allow reading controller
+   state** under **Permissions** (off by default). The tool reconnects by
+   itself after a permission change.
+4. Open the tool: run the EXE, or choose **Open** in S2P's Extensions list or
+   notification area menu. When **Status** shows **Connected to S2P**, it is
+   ready. While S2P is not running, the tool waits and retries.
 
-- 按視窗右上角的 X 不會結束程式：視窗會縮到系統匣，持續連線 S2P，手把觸發仍然有效。
-- 在系統匣圖示按左鍵或選「顯示」叫回視窗；按右鍵選「結束」才會完全關閉並與 S2P 中斷。
-- 程式只會同時執行一份。已在背景執行時，再開一次 EXE 或在 S2P 按「開啟」，會直接叫回原本的視窗。
-- 在 S2P 啟用本工具後，S2P 連線開始時會自動在背景啟動它（直接進系統匣、不跳出視窗）。
-  第一次使用仍會先顯示使用聲明。
+## Running in the background
 
-## 畫面
+- The X button does not quit: the window goes to the notification area, the
+  tool stays connected to S2P, and controller triggers keep working.
+- Click the notification area icon or choose **Show** to bring the window
+  back; right-click it and choose **Quit** to close the tool and disconnect.
+- Only one copy runs at a time. While it runs in the background, launching the
+  EXE again or choosing **Open** in S2P brings back the existing window.
+- Once the tool is enabled in S2P, S2P starts it in the background whenever
+  the connection starts (straight to the notification area, no window). The
+  notice is still shown on first use.
 
-- **左側**：巨集清單，下方是「新增」「重新命名」「刪除」「匯入...」「匯出...」。
-- **右上**：步驟表格。每一列是「一組按鍵／扳機／搖桿狀態」與「持續時間」。
-- **右中**：錄製與播放。
-- **右下**：狀態（連線、目前進度）與中／En 切換。
+## Window
 
-## 錄製
+- **Left**: the macro list, with **New**, **Rename**, **Delete**,
+  **Import...** and **Export...** below it.
+- **Top right**: the step table. Each row is one button / trigger / stick
+  state and how long it is held.
+- **Middle right**: recording and playback.
+- **Bottom right**: status (connection and current progress) and the 中／En
+  language switch.
 
-1. 按「錄製」。清單會先出現「● 錄製中…」，步驟表格即時顯示錄到的內容。
-   第一個按下的輸入才開始計時，不會錄到開頭的空白。
-2. 在實體手把上操作，完成後按「停止」或 Esc。
-3. 新巨集會以「Rec 日期 時間」命名，可重新命名。
+## Recording
 
-錄製的是 S2P 已套用曲線、陀螺儀與按鍵映射後的輸出，而且不包含任何擴充工具送出的輸入
-（不會錄到自己播放的內容）。預設只錄按鍵與扳機；勾選「錄製搖桿」才會錄搖桿。
+1. Select **Record**. A **● Recording…** entry appears in the list at once,
+   and the step table shows what is recorded as it happens. Timing starts at
+   the first input, so idle time before it is not recorded.
+2. Use the physical controller, then select **Stop** or press Esc.
+3. The new macro is named **Rec date time**; you can rename it.
 
-## 播放
+Recording captures S2P's output after curves, gyro and button mapping, and
+never includes input sent by extension tools (so it does not record its own
+playback). Only buttons and triggers are recorded by default; check **Record
+sticks** to record the sticks too.
 
-- 選擇巨集後按「播放」；Esc 或「停止」隨時停止，停止時會立即放開所有輸入。
-- **重複次數**：0 表示不停重複，直到停止。
-- **速度**：0.25x～2x。
-- **循環間隔 ms**：每次重複之間先放開所有輸入的時間，讓重複的按鍵被遊戲視為新的按下。
-- **搖桿**：巨集含搖桿動作時，本工具在播放期間自動向 S2P 取得該搖桿的控制權，播完立即歸還。
-  若該搖桿正被其他擴充工具使用，會略過搖桿動作並在狀態區提示。
-- 播放期間你仍可操作實體手把：按鍵會合併；實體搖桿一推動就優先於巨集。
+## Playback
 
-## 手把觸發
+- Select a macro and choose **Play**. Esc or **Stop** ends playback at any
+  time and releases every input immediately.
+- **Repeat**: 0 repeats until stopped.
+- **Speed**: 0.25x to 2x.
+- **Loop gap ms**: how long all input is released between repeats, so a
+  repeated button counts as a new press in the game.
+- **Sticks**: when a macro moves a stick, the tool takes control of that
+  stick from S2P only while it plays and gives it back afterwards. If another
+  extension tool is using that stick, the stick moves are skipped and the
+  status area says so.
+- You can still use the physical controller during playback: buttons are
+  combined, and a moving physical stick takes priority over the macro.
 
-1. 選擇巨集，按「設定觸發鍵...」，勾選要同時按住的手把按鍵（例如 BACK + R_STK）。
-2. 勾選「啟用手把觸發」（預設開啟）。
-3. 在手把上同時按住這組按鍵即開始播放；播放中再按一次則停止。
+## Controller trigger
 
-- 需要在 S2P 的擴充工具清單允許「讀取控制器狀態」；沒有權限時狀態區會提示。
-- 觸發鍵仍會傳給遊戲，請選擇遊戲中用不到的組合，建議兩個以上按鍵。
-- 同一組觸發鍵只能給一個巨集；多組同時符合時，以按鍵最多的那組為準。
-- 錄製期間不偵測觸發鍵。
+1. Select a macro, choose **Set Trigger...**, and check the controller buttons
+   to hold together (for example BACK + R_STK).
+2. Check **Controller trigger** (on by default).
+3. Hold that combination on the controller to start playback; press it again
+   while it plays to stop.
 
-## 編輯
+- It needs **Allow reading controller state** in S2P's Extensions list; the
+  status area says so when the permission is missing.
+- Trigger buttons still reach the game, so choose a combination the game does
+  not use, ideally two or more buttons.
+- A combination can belong to only one macro. When several match at once,
+  the one with the most buttons wins.
+- Triggers are not detected while recording.
 
-在步驟表格中可新增、編輯（雙擊）、刪除、上移、下移。建議每個步驟至少 16 ms，遊戲才一定讀得到。
-所有變更會立即儲存。巨集檔是 JSON（`"format": "s2p-macro"`），可用「匯入...／匯出...」分享。
+## Editing
 
-## 從原始碼執行
+In the step table you can add, edit (double-click), delete, and move steps up
+or down. Keep each step at least 16 ms so games always see it. Every change is
+saved immediately. Macro files are JSON (`"format": "s2p-macro"`) and can be
+shared with **Import...** / **Export...**.
+
+## Run from source
 
 ```powershell
 cd macro
 python -m s2p_macro
 ```
 
-只需要 Python 3.11+ 標準函式庫（含 Tkinter）。打包：`powershell -ExecutionPolicy Bypass -File macro\build.ps1`。
+Only the Python 3.11+ standard library (with Tkinter) is needed. To build the
+EXE: `powershell -ExecutionPolicy Bypass -File macro\build.ps1`.

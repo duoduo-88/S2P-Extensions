@@ -1,32 +1,42 @@
 # S2P-Extensions
 
-S2P-XInput-Lite 的選用擴充工具集合。每個工具都是獨立程式，透過 S2P 的「擴充工具」介面
-（Windows Named Pipe，協定 v1）提交輸入或讀取控制器狀態；S2P 仍是唯一的虛擬 XInput 手把輸出。
-S2P 不需要這些工具也能正常運作。
+[繁體中文](README_zh-TW.md) · [S2P-Joystick-Macro](macro/README.md) · [Developing tools](docs/development.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
 
-| 目錄 | 內容 | 狀態 |
+Optional extension tools for [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite).
+Each tool is an independent program that submits input or reads controller
+state through S2P's Extensions interface (a Windows named pipe, protocol v1).
+S2P stays the only virtual XInput controller, and it works normally without
+any of these tools.
+
+| Folder | Contents | Status |
 |---|---|---|
-| `sdk/` | 共用 IPC Client（`s2p_ext`），只用標準函式庫 | 可用 |
-| `macro/` | S2P-Joystick-Macro：錄製、播放、編輯手把按鍵與搖桿操作 | 可用（v0.1.0） |
-| `docs/` | 開發文件 | 可用 |
-| `tests/` | 單元測試與搭配 S2P 的整合測試 | 可用 |
+| `sdk/` | Shared IPC client (`s2p_ext`), standard library only | Available |
+| `macro/` | S2P-Joystick-Macro: record, play back and edit controller button and stick input | Available (v0.1.0) |
+| `docs/` | Developer documentation | Available |
+| `tests/` | Unit tests and integration tests against S2P | Available |
 
-多設備輸入工具與其他範例尚未實作，目錄會在開始實作時才建立。
+A multi-device input tool and further examples are not implemented yet; their
+folders will be added when work on them starts.
 
-## 責任歸屬
+## Responsibility
 
-擴充工具由本專案提供，與 S2P-XInput-Lite 主程式分開發佈。使用擴充工具所產生的操作與結果由使用者自行負責；
-部分遊戲或線上服務禁止外部輸入或自動化操作，使用前請先確認相關規範。本專案不提供任何規避反作弊系統的功能。
+These extension tools are provided by this project and released separately
+from the S2P-XInput-Lite main program. You are responsible for how you use
+them and for the results. Some games and online services prohibit external
+input or automation; check their rules before use. This project provides no
+feature to bypass any anti-cheat system.
 
-## 測試
+## Tests
 
 ```powershell
 python -m unittest discover -s tests
 ```
 
-`tests/test_s2p_integration.py` 會連到 S2P-XInput-Lite 的真實 pipe 伺服器；需要把 S2P-XInput-Lite 原始碼放在
-本資料夾旁（`..\S2P-XInput-Lite\src`），或設定環境變數 `S2P_XINPUT_LITE_SRC`，否則自動略過。
+`tests/test_s2p_integration.py` connects to S2P-XInput-Lite's real pipe
+server. It needs the S2P-XInput-Lite source next to this folder
+(`..\S2P-XInput-Lite\src`) or the `S2P_XINPUT_LITE_SRC` environment variable;
+otherwise it is skipped.
 
-## 開發新工具
+## Developing a new tool
 
-見 [docs/development.md](docs/development.md)。
+See [docs/development.md](docs/development.md) (Traditional Chinese).
