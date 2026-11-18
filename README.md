@@ -14,7 +14,7 @@ any of these tools.
 | `macro/` | S2P-Joystick-Macro: record, play back and edit controller button and stick input | Available (v0.1.0) |
 | `manual/` | Shared user guide; each tool's own guide is in its folder (`macro/manual/`) | Available |
 | `docs/` | Developer documentation | Available |
-| `release/`, `scripts/` | Release zip READMEs and the packaging script | Available |
+| `release/`, `scripts/` | Release zip READMEs, the packaging script and the playback timing measurement | Available |
 | `tests/` | Unit tests and integration tests against S2P | Available |
 
 A multi-device input tool and further examples are not implemented yet; their
@@ -51,6 +51,17 @@ server. It needs the S2P-XInput-Lite source next to this folder
 (`..\S2P-XInput-Lite\src`) or the `S2P_XINPUT_LITE_SRC` environment variable;
 otherwise it is skipped.
 
+`scripts/measure_playback_timing.py` measures macro playback timing through
+S2P's merge path (opt-in, about 16 minutes); results are in
+[docs/playback-timing.md](docs/playback-timing.md).
+
 ## Developing a new tool
 
 See [docs/development.md](docs/development.md).
+
+## License
+
+S2P-Extensions is licensed under the [GNU General Public License v3.0](LICENSE),
+the same license as S2P-XInput-Lite. You may use, modify and redistribute it
+under those terms; a modified version you distribute must also be released
+under GPL-3.0 with its source code.

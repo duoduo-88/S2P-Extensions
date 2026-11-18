@@ -12,7 +12,7 @@ S2P 仍是唯一的虛擬 XInput 手把輸出。S2P 不需要這些工具也能�
 | `macro/` | S2P-Joystick-Macro：錄製、播放、編輯手把按鍵與搖桿操作 | 可用（v0.1.0） |
 | `manual/` | 共用使用手冊；各工具的手冊在各自資料夾內（`macro/manual/`） | 可用 |
 | `docs/` | 開發文件 | 可用 |
-| `release/`、`scripts/` | 發佈 zip 內的說明文件與打包腳本 | 可用 |
+| `release/`、`scripts/` | 發佈 zip 內的說明文件、打包腳本與播放時間量測 | 可用 |
 | `tests/` | 單元測試與搭配 S2P 的整合測試 | 可用 |
 
 多設備輸入工具與其他範例尚未實作，目錄會在開始實作時才建立。
@@ -41,6 +41,14 @@ python -m unittest discover -s tests
 `tests/test_s2p_integration.py` 會連到 S2P-XInput-Lite 的真實 pipe 伺服器；需要把 S2P-XInput-Lite 原始碼放在
 本資料夾旁（`..\S2P-XInput-Lite\src`），或設定環境變數 `S2P_XINPUT_LITE_SRC`，否則自動略過。
 
+`scripts/measure_playback_timing.py` 透過 S2P 的合併路徑量測巨集播放時間（需手動執行，約 16 分鐘），結果見
+[docs/playback-timing_zh-TW.md](docs/playback-timing_zh-TW.md)。
+
 ## 開發新工具
 
 見 [docs/development_zh-TW.md](docs/development_zh-TW.md)。
+
+## 授權
+
+S2P-Extensions 採用 [GNU General Public License v3.0](LICENSE) 授權，與 S2P-XInput-Lite 相同。
+你可以依此條款使用、修改與再散布；散布修改後的版本時，也必須以 GPL-3.0 授權並提供原始碼。
