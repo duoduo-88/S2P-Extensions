@@ -42,11 +42,16 @@ connection.stop()             # sends bye; S2P clears this tool's input
 | Errors | S2P closes the connection after replying with `error`; `AutoConnection` retries automatically. |
 | Background start | When S2P starts an enabled tool by itself, it sets `S2P_EXTENSION_BACKGROUND=1`; the tool should not show a window. |
 | Single instance | **Open** starts the tool again; the tool should bring back its existing window instead of starting a second copy. |
+| Closing with S2P | `welcome` carries `host_pid`, the S2P window process. Pass `on_host_exit` to `AutoConnection` (it uses `ProcessExitWatcher`) and quit when it fires. A connection restart keeps that process, so it does not fire. |
 
 ## Releasing
 
 - Develop in Python and package a single EXE with PyInstaller (example:
   `macro/build.ps1`).
+- Add the tool to the `$tools` list in `scripts/package_release.ps1` so it
+  gets its own folder inside the release zip's `S2P-Extensions\` folder. Its
+  build output goes to `dist\<Tool>\` with `<Tool>.exe`, `README.md` and
+  `README_zh-TW.md`; also list it in `release/README*.md`.
 - On first launch, explain clearly what the tool does, who is responsible for
   its use, and that games may have rules against it.
 - Do not create a virtual controller, do not use DLL injection or hooks, and

@@ -11,6 +11,7 @@ from .client import (
     PROTOCOL_VERSION,
     AutoConnection,
     ExtensionClient,
+    ProcessExitWatcher,
     S2PError,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "PROTOCOL_VERSION",
     "AutoConnection",
     "ExtensionClient",
+    "ProcessExitWatcher",
     "S2PError",
 ]

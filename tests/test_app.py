@@ -37,9 +37,10 @@ class FakeClient:
 class FakeConnection:
     """Mimics AutoConnection: a reconnect builds a client from the factory."""
 
-    def __init__(self, factory, on_change):
+    def __init__(self, factory, on_change, on_host_exit=None):
         self.factory = factory
         self.on_change = on_change
+        self.on_host_exit = on_host_exit
         self.client = FakeClient()
         self.claims = []
 
@@ -249,6 +250,18 @@ class MacroAppTests(unittest.TestCase):
         self.app._show_requests.put("show")  # what SingleInstance reports
         self.pump(0.2)
         self.assertNotEqual(self.root.state(), "withdrawn")
+
+    def test_closing_s2p_closes_the_tool(self):
+        self.select("Buttons")
+        self.app.start_playback()
+        client = self.app.connection.client
+        tray = self.app.tray
+        self.app.connection.on_host_exit()  # what the host watcher reports
+        self.pump(0.2)
+        self.assertTrue(tray.stopped)
+        self.assertGreaterEqual(client.released, 1)  # playback released its input
+        with self.assertRaises(tk.TclError):
+            self.root.winfo_exists() and self.root.state()
 
     def test_tray_exit_really_quits(self):
         tray = self.app.tray

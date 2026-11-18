@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import threading
 import time
 
@@ -163,6 +164,64 @@ class ExtensionClient:
         return self._exchange({"type": "get_controller"})
 
 
+class ProcessExitWatcher:
+    """Call ``callback`` once when the process ``pid`` exits (Windows only).
+
+    Blocks on the process handle and a stop event, so it never polls.
+    """
+
+    def __init__(self, pid, callback):
+        self.pid = int(pid)
+        self._callback = callback
+        self._thread = None
+        self._stop_event = None
+        self._kernel32 = None
+
+    def start(self):
+        if sys.platform != "win32" or self.pid <= 0:
+            return False
+        import ctypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.OpenProcess.restype = ctypes.c_void_p
+        kernel32.OpenProcess.argtypes = (ctypes.c_ulong, ctypes.c_int, ctypes.c_ulong)
+        kernel32.CreateEventW.restype = ctypes.c_void_p
+        kernel32.CreateEventW.argtypes = (ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_wchar_p)
+        kernel32.SetEvent.argtypes = (ctypes.c_void_p,)
+        kernel32.CloseHandle.argtypes = (ctypes.c_void_p,)
+        kernel32.WaitForMultipleObjects.argtypes = (
+            ctypes.c_ulong, ctypes.POINTER(ctypes.c_void_p), ctypes.c_int, ctypes.c_ulong,
+        )
+        kernel32.WaitForMultipleObjects.restype = ctypes.c_ulong
+        self._kernel32 = kernel32
+        process = kernel32.OpenProcess(0x00100000, False, self.pid)  # SYNCHRONIZE
+        if not process:
+            if ctypes.get_last_error() == 87:  # already gone
+                self._callback()
+            return False
+        self._stop_event = kernel32.CreateEventW(None, True, False, None)
+        handles = (ctypes.c_void_p * 2)(process, self._stop_event)
+
+        def wait():
+            try:
+                if kernel32.WaitForMultipleObjects(2, handles, False, 0xFFFFFFFF) == 0:
+                    self._callback()
+            finally:
+                kernel32.CloseHandle(process)
+
+        self._thread = threading.Thread(target=wait, name="S2P-HostWatcher", daemon=True)
+        self._thread.start()
+        return True
+
+    def stop(self):
+        if self._stop_event:
+            self._kernel32.SetEvent(self._stop_event)
+            if self._thread is not None and self._thread is not threading.current_thread():
+                self._thread.join(1.0)
+            self._kernel32.CloseHandle(self._stop_event)
+            self._stop_event = None
+
+
 class AutoConnection:
     """Keep one client connected, retrying while S2P is not running.
 
@@ -170,12 +229,19 @@ class AutoConnection:
     detail)`` reports "connecting", "connected" or "rejected" from the
     background thread.  A rejection (S2PError) is retried more slowly so a
     misconfigured tool does not spam S2P.
+
+    ``on_host_exit()`` (optional) runs once when the S2P window process named
+    in the welcome (``host_pid``) exits, so a tool can close together with
+    S2P.  A connector restart keeps that process, so it does not trigger.
     """
 
     KEEPALIVE_SECONDS = 1.0
 
-    def __init__(self, factory, on_change=None, retry_seconds=1.0, rejected_retry_seconds=5.0):
+    def __init__(self, factory, on_change=None, retry_seconds=1.0, rejected_retry_seconds=5.0,
+                 on_host_exit=None):
         self._factory = factory
+        self._on_host_exit = on_host_exit
+        self._host_watcher = None
         self._on_change = on_change or (lambda state, detail: None)
         self._retry = retry_seconds
         self._rejected_retry = rejected_retry_seconds
@@ -203,8 +269,21 @@ class AutoConnection:
         client, self.client = self.client, None
         if client is not None:
             client.close()
+        if self._host_watcher is not None:
+            self._host_watcher.stop()
+            self._host_watcher = None
         if self._thread is not None:
             self._thread.join(2.0)
+
+    def _watch_host(self, pid):
+        if self._on_host_exit is None or not isinstance(pid, int) or pid <= 0:
+            return
+        if self._host_watcher is not None and self._host_watcher.pid == pid:
+            return
+        if self._host_watcher is not None:
+            self._host_watcher.stop()
+        self._host_watcher = ProcessExitWatcher(pid, self._on_host_exit)
+        self._host_watcher.start()
 
     def _report(self, state, detail=""):
         self.state, self.detail = state, detail
@@ -245,6 +324,7 @@ class AutoConnection:
                     candidate.close()
                     break
                 self.client = candidate
+                self._watch_host((candidate.welcome or {}).get("host_pid"))
                 self._report("connected")
                 continue
             self._wake.wait(delay)

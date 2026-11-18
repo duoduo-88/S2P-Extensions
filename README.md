@@ -13,6 +13,7 @@ any of these tools.
 | `sdk/` | Shared IPC client (`s2p_ext`), standard library only | Available |
 | `macro/` | S2P-Joystick-Macro: record, play back and edit controller button and stick input | Available (v0.1.0) |
 | `docs/` | Developer documentation | Available |
+| `release/`, `scripts/` | Release zip READMEs and the packaging script | Available |
 | `tests/` | Unit tests and integration tests against S2P | Available |
 
 A multi-device input tool and further examples are not implemented yet; their
@@ -25,6 +26,18 @@ from the S2P-XInput-Lite main program. You are responsible for how you use
 them and for the results. Some games and online services prohibit external
 input or automation; check their rules before use. This project provides no
 feature to bypass any anti-cheat system.
+
+## Release package
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
+```
+
+This runs the tests, builds every tool, and writes
+`dist\S2P-Extensions-v<VERSION>.zip`. The zip holds one `S2P-Extensions\`
+folder with the user READMEs from `release/` and a subfolder per tool
+(`S2P-Extensions\S2P-Joystick-Macro\S2P-Joystick-Macro.exe` and its READMEs).
+The release version is in `VERSION`.
 
 ## Tests
 

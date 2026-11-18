@@ -39,10 +39,13 @@ connection.stop()             # 送出 bye；S2P 清除此工具輸入
 | 錯誤 | S2P 回覆 `error` 後會中斷連線；`AutoConnection` 會自動重試 |
 | 背景啟動 | S2P 自動啟動已啟用工具時設 `S2P_EXTENSION_BACKGROUND=1`，工具應不跳出視窗 |
 | 單一執行個體 | 「開啟」會再次啟動工具；工具應叫回原本的視窗而不是開第二份 |
+| 跟著 S2P 關閉 | `welcome` 帶有 `host_pid`（S2P 視窗程序）。給 `AutoConnection` 傳 `on_host_exit`（內部使用 `ProcessExitWatcher`），觸發時結束工具；只重新啟動連線不會觸發 |
 
 ## 發佈
 
 - 以 Python 開發，用 PyInstaller 打包成單一 EXE（範例：`macro/build.ps1`）。
+- 把工具加進 `scripts/package_release.ps1` 的 `$tools` 清單，發佈 zip 的 `S2P-Extensions\` 內就會有它自己的資料夾。
+  建置輸出放在 `dist\<工具名>\`，內含 `<工具名>.exe`、`README.md`、`README_zh-TW.md`；並在 `release/README*.md` 列出。
 - 第一次啟動時清楚說明用途、責任歸屬與遊戲規範注意事項。
 - 不建立虛擬手把、不使用 DLL 注入或 Hook、不加入任何反作弊規避功能。
 

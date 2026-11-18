@@ -109,7 +109,11 @@ class MacroApp:
         self._trigger_events = queue.SimpleQueue()
         self._triggers = {}
         self._connection_state = ("connecting", "")
-        self.connection = connection_factory(self._make_client, self._on_connection)
+        # Closing S2P closes this tool too (a connector restart does not).
+        self.connection = connection_factory(
+            self._make_client, self._on_connection,
+            on_host_exit=lambda: self._show_requests.put("exit"),
+        )
         self.status_text = ""
         self._tick_job = None
         self._shown_steps = []
@@ -395,9 +399,12 @@ class MacroApp:
     def _handle_window_requests(self):
         while True:
             try:
-                self._show_requests.get_nowait()
+                request = self._show_requests.get_nowait()
             except queue.Empty:
                 break
+            if request == "exit":
+                self.close()  # S2P closed: stop playback, release input, quit
+                return
             self.show_window()
         if self.tray is None:
             return

@@ -159,6 +159,31 @@ class S2PIntegrationTests(unittest.TestCase):
         entry = self.manager.status()["tools"]["macro"]
         self.assertEqual(entry["state"], "connected")
 
+    def test_tool_follows_the_s2p_window_process(self):
+        import subprocess
+        import threading
+        from s2p_ext import AutoConnection
+
+        # A stand-in for the S2P window process that we can end on demand.
+        host = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
+        self.addCleanup(lambda: host.poll() is None and host.kill())
+        self.manager.host_pid = host.pid
+        self.enable()
+        exited = threading.Event()
+        connection = AutoConnection(
+            lambda: ExtensionClient("S2P-Joystick-Macro", pipe_name=self.pipe, token="macro-token"),
+            retry_seconds=0.1, on_host_exit=exited.set,
+        )
+        connection.start()
+        self.addCleanup(connection.stop)
+        deadline = time.monotonic() + 3
+        while connection.client is None and time.monotonic() < deadline:
+            time.sleep(0.02)
+        self.assertEqual(connection.client.welcome["host_pid"], host.pid)
+        self.assertFalse(exited.wait(0.3))
+        host.kill()
+        self.assertTrue(exited.wait(3.0))
+
     def test_unknown_tool_is_rejected(self):
         self.enable()
         client = ExtensionClient("S2P-Joystick-Macro", pipe_name=self.pipe, token="wrong")

@@ -40,6 +40,8 @@ own and does not modify S2P.
 - Once the tool is enabled in S2P, S2P starts it in the background whenever
   the connection starts (straight to the notification area, no window). The
   notice is still shown on first use.
+- Closing S2P-XInput-Lite closes the tool too: playback stops and all of its
+  input is released. Restarting only the S2P connection keeps it running.
 
 ## Window
 

@@ -2,7 +2,8 @@
 #   powershell -ExecutionPolicy Bypass -File macro\build.ps1
 # Requires: Python 3.11+ with PyInstaller (pip install pyinstaller).
 param(
-    [string]$Python = "python"
+    [string]$Python = "python",
+    [switch]$SkipTests  # scripts\package_release.ps1 already ran them
 )
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
@@ -11,8 +12,10 @@ $sdk = Join-Path $repo "sdk"
 $out = Join-Path $repo "dist\S2P-Joystick-Macro"
 $work = Join-Path $repo "build\S2P-Joystick-Macro"
 
-& $Python -m unittest discover -s (Join-Path $repo "tests")
-if ($LASTEXITCODE -ne 0) { throw "Tests failed; not building." }
+if (-not $SkipTests) {
+    & $Python -m unittest discover -s (Join-Path $repo "tests")
+    if ($LASTEXITCODE -ne 0) { throw "Tests failed; not building." }
+}
 
 & $Python -m PyInstaller `
     --noconfirm --clean --onefile --windowed `

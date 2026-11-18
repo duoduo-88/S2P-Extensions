@@ -11,6 +11,7 @@ S2P 仍是唯一的虛擬 XInput 手把輸出。S2P 不需要這些工具也能�
 | `sdk/` | 共用 IPC Client（`s2p_ext`），只用標準函式庫 | 可用 |
 | `macro/` | S2P-Joystick-Macro：錄製、播放、編輯手把按鍵與搖桿操作 | 可用（v0.1.0） |
 | `docs/` | 開發文件 | 可用 |
+| `release/`、`scripts/` | 發佈 zip 內的說明文件與打包腳本 | 可用 |
 | `tests/` | 單元測試與搭配 S2P 的整合測試 | 可用 |
 
 多設備輸入工具與其他範例尚未實作，目錄會在開始實作時才建立。
@@ -19,6 +20,16 @@ S2P 仍是唯一的虛擬 XInput 手把輸出。S2P 不需要這些工具也能�
 
 擴充工具由本專案提供，與 S2P-XInput-Lite 主程式分開發佈。使用擴充工具所產生的操作與結果由使用者自行負責；
 部分遊戲或線上服務禁止外部輸入或自動化操作，使用前請先確認相關規範。本專案不提供任何規避反作弊系統的功能。
+
+## 發佈套件
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
+```
+
+會先跑測試、建置每個工具，再產生 `dist\S2P-Extensions-v<VERSION>.zip`。zip 內只有一個 `S2P-Extensions\`
+資料夾，裡面是 `release/` 的使用說明，以及每個工具各自的子資料夾
+（例如 `S2P-Extensions\S2P-Joystick-Macro\S2P-Joystick-Macro.exe` 與它的說明）。發佈版本號寫在 `VERSION`。
 
 ## 測試
 
