@@ -129,6 +129,37 @@ class RecorderTests(unittest.TestCase):
         self.assertEqual(steps[1].rt, 255)
         self.assertEqual(recorder.change_count, 3)
         self.assertGreater(recorder.elapsed, 0)
+        self.assertEqual((recorder.frames_seen, recorder.frames_missed), (4, 0))
+
+    def test_counts_reports_missed_between_reads(self):
+        # Frames 2-3 and 6-8 were never read; the gap before the first input
+        # (idle time, not recorded) and a restart of S2P (frame drops) do not count.
+        script = [
+            {"frame": 10, "buttons": []},
+            {"frame": 20, "buttons": ["A"]},
+            {"frame": 21, "buttons": ["A"]},
+            {"frame": 24, "buttons": ["B"]},
+            {"frame": 25, "buttons": ["B"]},
+            {"frame": 29, "buttons": []},
+            {"frame": 1, "buttons": ["X"]},
+            {"frame": 2, "buttons": []},
+        ]
+        replies = iter(script)
+
+        def get_input():
+            reply = next(replies, None)
+            if reply is None:
+                raise ConnectionError("end of script")  # ends the loop below
+            return reply
+
+        # Run the polling loop in this thread: the result must not depend on
+        # how fast a background thread happens to be scheduled.
+        recorder = MacroRecorder(get_input, poll_seconds=0)
+        recorder._run()
+        self.assertIsInstance(recorder.error, ConnectionError)
+        self.assertEqual(recorder.frames_missed, 2 + 3)
+        self.assertEqual(recorder.frames_seen, 7)
+        self.assertEqual(recorder.frames_total, 12)
 
     def test_connection_error_stops_recording(self):
         def get_input():

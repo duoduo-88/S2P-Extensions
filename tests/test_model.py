@@ -51,6 +51,19 @@ class MacroFileTests(unittest.TestCase):
             with self.subTest(data=data), self.assertRaises(MacroFormatError):
                 Macro.from_dict(data)
 
+    def test_wrongly_typed_step_values_are_format_errors(self):
+        # tuple(None) used to raise TypeError, which Import... does not catch.
+        for step in (
+            {"duration_ms": 10, "left": None}, {"duration_ms": 10, "right": None},
+            {"duration_ms": 10, "left": 5}, {"duration_ms": 10, "left": [1]},
+            {"duration_ms": 10, "left": [1, 2, 3]}, {"duration_ms": 10, "left": ["a", "b"]},
+            {"duration_ms": 10, "lt": None}, {"duration_ms": None},
+            {"duration_ms": 10, "buttons": None}, {"duration_ms": 10, "buttons": [None]},
+        ):
+            data = {"format": "s2p-macro", "version": 1, "name": "x", "steps": [step]}
+            with self.subTest(step=step), self.assertRaises(MacroFormatError):
+                Macro.from_dict(data)
+
 
 class RecordingConversionTests(unittest.TestCase):
     def test_changes_become_held_steps_and_trailing_release_is_dropped(self):
@@ -98,6 +111,16 @@ class LibraryTests(unittest.TestCase):
         self.assertEqual(self.library.names(), ["good"])
         with self.assertRaises(MacroFormatError):
             self.library.load_file(self.library.folder / "broken.json")
+
+    def test_wrongly_typed_files_are_skipped_and_reported(self):
+        self.library.save(Macro("good", [Step(10)]))
+        bad = self.library.folder / "bad.json"
+        bad.write_text(json.dumps({"format": "s2p-macro", "version": 1, "name": "bad",
+                                   "steps": [{"duration_ms": 10, "left": None}]}),
+                       encoding="utf-8")
+        self.assertEqual(self.library.names(), ["good"])  # listing does not crash
+        with self.assertRaises(MacroFormatError):
+            self.library.load_file(bad)  # Import... shows this as a message
 
     def test_unsafe_names_stay_inside_the_folder(self):
         self.assertEqual(safe_file_stem('..\\a/b:c*?'), "_a_b_c__")

@@ -74,6 +74,15 @@ class MacroRecorder:
         self._end_time = None
         self.error = None
         self.first_input_at = None
+        # get_input returns S2P's latest report, not a queue.  S2P numbers its
+        # reports, so a jump in "frame" between two reads counts the reports
+        # that were never seen (counted only once recording has started).
+        self.frames_seen = 0
+        self.frames_missed = 0
+
+    @property
+    def frames_total(self):
+        return self.frames_seen + self.frames_missed
 
     @property
     def running(self):
@@ -120,7 +129,9 @@ class MacroRecorder:
                     break
                 frame = reply.get("frame", 0)
                 if frame and frame != last_frame:
-                    last_frame = frame
+                    if self._events and last_frame is not None and frame > last_frame:
+                        self.frames_missed += frame - last_frame - 1
+                    last_frame = frame  # a lower number: S2P restarted, no gap
                     state = state_from_input(reply, self._record_sticks, self._deadzone)
                     now = self._clock()
                     if last_state is None or not state.same_input(last_state):
@@ -129,6 +140,8 @@ class MacroRecorder:
                                 self.first_input_at = now
                             self._events.append((now, state))
                         last_state = state
+                    if self._events:
+                        self.frames_seen += 1
                 self._stop.wait(self._poll)
         self._end_time = self._clock()
 

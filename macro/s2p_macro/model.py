@@ -103,8 +103,10 @@ class Step:
             buttons=tuple(buttons),
             lt=data.get("lt", 0),
             rt=data.get("rt", 0),
-            left=tuple(data.get("left", NEUTRAL_STICK)),
-            right=tuple(data.get("right", NEUTRAL_STICK)),
+            # Passed as-is: _stick() validates the shape, so null or a number
+            # becomes a MacroFormatError instead of a TypeError from tuple().
+            left=data.get("left", NEUTRAL_STICK),
+            right=data.get("right", NEUTRAL_STICK),
         )
 
 
@@ -216,7 +218,12 @@ class MacroLibrary:
             data = json.loads(Path(path).read_text(encoding="utf-8"))
         except ValueError as exc:
             raise MacroFormatError("macro file is not valid JSON") from exc
-        return Macro.from_dict(data)
+        try:
+            return Macro.from_dict(data)
+        except (TypeError, AttributeError, KeyError) as exc:
+            # Safety net: any other malformed value is a format error, so
+            # Import... shows a message and the macro list skips the file.
+            raise MacroFormatError(f"invalid macro file: {exc}") from exc
 
     def load(self, name):
         return self.load_file(self.path_for(name))
