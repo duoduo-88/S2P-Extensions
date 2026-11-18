@@ -242,6 +242,7 @@ class AutoConnection:
         self._factory = factory
         self._on_host_exit = on_host_exit
         self._host_watcher = None
+        self._host_lock = threading.Lock()  # stop() vs. a connect finishing late
         self._on_change = on_change or (lambda state, detail: None)
         self._retry = retry_seconds
         self._rejected_retry = rejected_retry_seconds
@@ -269,21 +270,25 @@ class AutoConnection:
         client, self.client = self.client, None
         if client is not None:
             client.close()
-        if self._host_watcher is not None:
-            self._host_watcher.stop()
-            self._host_watcher = None
+        with self._host_lock:
+            watcher, self._host_watcher = self._host_watcher, None
+        if watcher is not None:
+            watcher.stop()
         if self._thread is not None:
             self._thread.join(2.0)
 
     def _watch_host(self, pid):
         if self._on_host_exit is None or not isinstance(pid, int) or pid <= 0:
             return
-        if self._host_watcher is not None and self._host_watcher.pid == pid:
-            return
-        if self._host_watcher is not None:
-            self._host_watcher.stop()
-        self._host_watcher = ProcessExitWatcher(pid, self._on_host_exit)
-        self._host_watcher.start()
+        with self._host_lock:
+            if self._stop.is_set():
+                return  # stop() already ran: never leave a watcher behind
+            if self._host_watcher is not None and self._host_watcher.pid == pid:
+                return
+            if self._host_watcher is not None:
+                self._host_watcher.stop()
+            self._host_watcher = ProcessExitWatcher(pid, self._on_host_exit)
+            self._host_watcher.start()
 
     def _report(self, state, detail=""):
         self.state, self.detail = state, detail

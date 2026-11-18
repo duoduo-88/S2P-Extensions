@@ -114,7 +114,8 @@ class MacroApp:
             self._make_client, self._on_connection,
             on_host_exit=lambda: self._show_requests.put("exit"),
         )
-        self.status_text = ""
+        self._status = ()  # ((source text, values), ...), translated when shown
+        self._play_warning = ()
         self._tick_job = None
         self._shown_steps = []
         self.scale = max(1.0, root.winfo_fpixels("1i") / 96.0)
@@ -417,6 +418,30 @@ class MacroApp:
             elif action == "exit":
                 self.close()
                 return
+
+    # -- status line (kept as source text so a language switch re-translates it) --
+
+    def _set_status(self, text="", **values):
+        self._status = ((text, values),) if text else ()
+
+    def _add_status(self, text, **values):
+        if text:
+            self._status += ((text, values),)
+
+    def _status_is(self, text):
+        return len(self._status) == 1 and self._status[0][0] == text
+
+    @property
+    def status_text(self):
+        lines = []
+        for text, values in self._status:
+            shown = {key: value() if callable(value) else value for key, value in values.items()}
+            lines.append(self.tr(text).format(**shown))
+        return "\n".join(lines)
+
+    def _stick_names(self, sides):
+        names = [self.tr(STICK_LABEL[side]) for side in sorted(sides)]
+        return ("、" if self.tr.language == "zh" else " and ").join(names)
 
     def toggle_language(self):
         self.settings.language = "en" if self.settings.language == "zh" else "zh"
@@ -890,20 +915,20 @@ class MacroApp:
         recorder, self.recorder = self.recorder, None
         steps = recorder.stop()
         if recorder.error is not None and not steps:
-            self.status_text = self.tr("錄製中斷：{error}").format(error=recorder.error)
+            self._set_status("錄製中斷：{error}", error=recorder.error)
             self.refresh_macro_list(self.settings.last_macro)
             return
         if not steps:
-            self.status_text = self.tr("沒有錄到任何輸入。")
+            self._set_status("沒有錄到任何輸入。")
             self.refresh_macro_list(self.settings.last_macro)
             return
         name = self._unique_name(time.strftime("Rec %Y-%m-%d %H-%M-%S"))
         self.macro = Macro(name, steps)
         self._save_macro()
         self.refresh_macro_list(name)
-        self.status_text = self.tr("已錄製「{name}」，共 {count} 步").format(name=name, count=len(steps))
+        self._set_status("已錄製「{name}」，共 {count} 步", name=name, count=len(steps))
         if recorder.error is not None:
-            self.status_text += "\n" + self.tr("錄製中斷：{error}").format(error=recorder.error)
+            self._add_status("錄製中斷：{error}", error=recorder.error)
 
     def start_playback(self):
         if self._busy():
@@ -922,7 +947,7 @@ class MacroApp:
             # Claim the sticks this macro moves, then play once reconnected.
             self._claim_sticks(needed)
             self._pending_play = time.monotonic() + STICK_CLAIM_TIMEOUT
-            self.status_text = self.tr("正在取得搖桿控制權…")
+            self._set_status("正在取得搖桿控制權…")
             return
         self._begin_playback()
 
@@ -930,20 +955,22 @@ class MacroApp:
         self._pending_play = None
         client = self.client
         if client is None:
-            self.status_text = self.tr("尚未連接 S2P-XInput-Lite。")
+            self._set_status("尚未連接 S2P-XInput-Lite。")
             self._claim_sticks(())
             return
         sticks = client.granted_sticks
         skipped = self.macro.sticks_used() - sticks
-        warning = ""
+        warning = ()
         if skipped:
-            names = "、".join(self.tr(STICK_LABEL[side]) for side in sorted(skipped))
-            warning = self.tr("{sticks}正由其他擴充工具控制，播放時會略過搖桿動作。").format(sticks=names)
+            warning = ((
+                "{sticks}正由其他擴充工具控制，播放時會略過搖桿動作。",
+                {"sticks": lambda: self._stick_names(skipped)},
+            ),)
         self._player_progress = None
         self._player_finished = None
         self._play_total = len(self.macro.steps)
         self._play_warning = warning
-        self.status_text = warning
+        self._status = warning
         self.player.play(
             self.macro.steps, loops=self.settings.loops, speed=self.settings.speed,
             sticks=sticks, loop_gap_ms=self.settings.loop_gap_ms,
@@ -1024,10 +1051,10 @@ class MacroApp:
         if self._pending_play is not None:
             self._pending_play = None
             self._claim_sticks(())
-            self.status_text = self.tr("播放已停止")
+            self._set_status("播放已停止")
         if self.player.running:
             self.player.stop()
-            self.status_text = self.tr("播放已停止")
+            self._set_status("播放已停止")
         if self.recorder is not None:
             self._finish_recording()
 
@@ -1078,23 +1105,24 @@ class MacroApp:
             else:
                 self.refresh_steps(steps=self.recorder.preview_steps(), follow=True)
                 if self.recorder.first_input_at is None:
-                    self.status_text = self.tr("錄製中：等待第一個輸入…")
+                    self._set_status("錄製中：等待第一個輸入…")
                 else:
-                    self.status_text = self.tr("錄製中：{seconds:.1f} 秒，{count} 次變化").format(
+                    self._set_status(
+                        "錄製中：{seconds:.1f} 秒，{count} 次變化",
                         seconds=self.recorder.elapsed, count=self.recorder.change_count)
         if self.player.running and self._player_progress is not None:
             loop, index = self._player_progress
-            self.status_text = self.tr("播放中：第 {loop} 次，第 {step}/{total} 步").format(
+            self._set_status(
+                "播放中：第 {loop} 次，第 {step}/{total} 步",
                 loop=loop, step=index + 1, total=self._play_total)
-            if self._play_warning:
-                self.status_text += "\n" + self._play_warning
+            self._status += self._play_warning
         if self._player_finished is not None and not self.player.running:
             completed, error = self._player_finished
             self._player_finished = None
             if error is not None:
-                self.status_text = self.tr("播放中斷：{error}").format(error=error)
-            elif self.status_text != self.tr("播放已停止"):
-                self.status_text = self.tr("播放完成（{loops} 次）").format(loops=completed)
+                self._set_status("播放中斷：{error}", error=error)
+            elif not self._status_is("播放已停止"):
+                self._set_status("播放完成（{loops} 次）", loops=completed)
             self._claim_sticks(())  # give the sticks back to other tools
         busy = self._busy()
         self.record_button.state(["disabled"] if busy else ["!disabled"])

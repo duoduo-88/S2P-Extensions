@@ -145,6 +145,45 @@ class MacroAppTests(unittest.TestCase):
         self.assertEqual(connection.client.released, 1)
         self.assertIn("Playback finished", self.app.status_label.cget("text"))
 
+    def test_status_line_follows_a_language_switch(self):
+        self.app.toggle_language()  # zh: record finds nothing
+        self.app._set_status("沒有錄到任何輸入。")
+        self.pump(0.1)
+        self.assertIn("沒有錄到任何輸入。", self.app.status_label.cget("text"))
+        self.app.toggle_language()  # back to English
+        self.pump(0.1)
+        self.assertIn("No input was recorded.", self.app.status_label.cget("text"))
+        self.assertNotIn("沒有", self.app.status_label.cget("text"))
+
+    def test_skipped_stick_warning_is_translated_when_shown(self):
+        self.app._status = ((
+            "{sticks}正由其他擴充工具控制，播放時會略過搖桿動作。",
+            {"sticks": lambda: self.app._stick_names({"left", "right"})},
+        ),)
+        self.assertIn("controls the Left stick and Right stick", self.app.status_text)
+        self.app.toggle_language()
+        self.assertTrue(self.app.status_text.startswith("左搖桿、右搖桿正由"), self.app.status_text)
+
+    def test_every_chinese_text_has_an_english_translation(self):
+        import ast
+        import re
+
+        from s2p_macro.i18n import EN
+
+        cjk = re.compile(r"[㐀-鿿　-〿＀-￯]")
+        allowed = {"中", "、"}  # the language button and the Chinese list separator
+        package = Path(app_module.__file__).resolve().parent
+        missing = []
+        for path in sorted(package.glob("*.py")):
+            if path.name == "i18n.py":
+                continue
+            for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+                if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                        and cjk.search(node.value) and node.value not in EN
+                        and node.value not in allowed):
+                    missing.append(f"{path.name}:{node.lineno}: {node.value}")
+        self.assertEqual(missing, [])
+
     def test_stick_macro_claims_the_stick_then_gives_it_back(self):
         self.select("Stick")
         self.app.start_playback()
