@@ -1,6 +1,6 @@
 # S2P-Extensions
 
-[繁體中文](README_zh-TW.md) · [S2P-Joystick-Macro](macro/README.md) · [Developing tools](docs/development.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
+[繁體中文](README_zh-TW.md) · [User Guide](manual/USER_GUIDE.md) · [S2P-Joystick-Macro](macro/README.md) · [Developing tools](docs/development.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
 
 Optional extension tools for [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite).
 Each tool is an independent program that submits input or reads controller
@@ -12,6 +12,7 @@ any of these tools.
 |---|---|---|
 | `sdk/` | Shared IPC client (`s2p_ext`), standard library only | Available |
 | `macro/` | S2P-Joystick-Macro: record, play back and edit controller button and stick input | Available (v0.1.0) |
+| `manual/` | Shared user guide; each tool's own guide is in its folder (`macro/manual/`) | Available |
 | `docs/` | Developer documentation | Available |
 | `release/`, `scripts/` | Release zip READMEs and the packaging script | Available |
 | `tests/` | Unit tests and integration tests against S2P | Available |

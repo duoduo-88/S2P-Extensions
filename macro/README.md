@@ -1,6 +1,9 @@
 # S2P-Joystick-Macro
 
-[繁體中文](README_zh-TW.md) · [S2P-Extensions](../README.md)
+[繁體中文](README_zh-TW.md) · [User Guide](https://github.com/duoduo-88/S2P-Extensions/blob/main/macro/manual/USER_GUIDE.md) · [S2P-Extensions](../README.md)
+
+This page is a quick reference. The [User Guide](https://github.com/duoduo-88/S2P-Extensions/blob/main/macro/manual/USER_GUIDE.md) explains
+every feature with screenshots.
 
 An independent extension tool for S2P-XInput-Lite that records controller
 button and stick input and plays it back later. It submits input through

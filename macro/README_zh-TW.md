@@ -1,6 +1,8 @@
 # S2P-Joystick-Macro
 
-[English](README.md) · [S2P-Extensions](../README_zh-TW.md)
+[English](README.md) · [使用手冊](https://github.com/duoduo-88/S2P-Extensions/blob/main/macro/manual/USER_GUIDE_zh-TW.md) · [S2P-Extensions](../README_zh-TW.md)
+
+本頁是快速參考；[使用手冊](https://github.com/duoduo-88/S2P-Extensions/blob/main/macro/manual/USER_GUIDE_zh-TW.md) 附截圖說明每個功能。
 
 S2P-XInput-Lite 的獨立擴充工具：錄製手把按鍵與搖桿操作，並在之後播放。它透過 S2P 的「擴充工具」介面
 送出輸入，本身不建立虛擬手把，也不修改 S2P。

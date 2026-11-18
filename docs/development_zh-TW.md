@@ -39,6 +39,7 @@ connection.stop()             # 送出 bye；S2P 清除此工具輸入
 | 錯誤 | S2P 回覆 `error` 後會中斷連線；`AutoConnection` 會自動重試 |
 | 背景啟動 | S2P 自動啟動已啟用工具時設 `S2P_EXTENSION_BACKGROUND=1`，工具應不跳出視窗 |
 | 單一執行個體 | 「開啟」會再次啟動工具；工具應叫回原本的視窗而不是開第二份 |
+| 更新檢查（必要） | 在 EXE 旁附上 `<EXE 名稱>.s2p.json`，寫明工具的 `name`、`version` 與 HTTPS 的 `update_url`，S2P 的 **檢查更新** 才能找到新版本。格式見 [工具清單檔與更新](https://github.com/duoduo-88/S2P-XInput-Lite/blob/v0.8.2/docs/extensions-ipc_zh-TW.md#工具清單檔與更新)。 |
 | 跟著 S2P 關閉 | `welcome` 帶有 `host_pid`（S2P 視窗程序）。給 `AutoConnection` 傳 `on_host_exit`（內部使用 `ProcessExitWatcher`），觸發時結束工具；只重新啟動連線不會觸發 |
 
 ## 發佈
@@ -46,6 +47,12 @@ connection.stop()             # 送出 bye；S2P 清除此工具輸入
 - 以 Python 開發，用 PyInstaller 打包成單一 EXE（範例：`macro/build.ps1`）。
 - 把工具加進 `scripts/package_release.ps1` 的 `$tools` 清單，發佈 zip 的 `S2P-Extensions\` 內就會有它自己的資料夾。
   建置輸出放在 `dist\<工具名>\`，內含 `<工具名>.exe`、`README.md`、`README_zh-TW.md`；並在 `release/README*.md` 列出。
+- 建置時依工具版本產生清單檔（範例：`macro/build.ps1` 中的 `scripts/tool_manifest.py manifest`），並放進 zip 內工具的資料夾。
+  `scripts/package_release.ps1` 會再產生列出所有工具的 `dist\s2p-extensions-updates.json`；每次發佈 GitHub release
+  都要把它和 zip 一起附上，因為所有清單檔的 `update_url` 都指向最新 release 的這個檔案。
+- 在 `<原始碼資料夾>/manual/` 撰寫工具自己的手冊 `USER_GUIDE.md` 與 `USER_GUIDE_zh-TW.md`，截圖放在
+  `manual/assets/`，並加入 `manual/USER_GUIDE*.md` 的工具清單。所有工具共通的內容（在 S2P 新增工具、權限、
+  連線狀態）寫在共用手冊，不要寫進工具手冊。手冊不放進發佈 zip，所以會放進 zip 的 README 要用完整 GitHub 網址連到手冊。
 - 第一次啟動時清楚說明用途、責任歸屬與遊戲規範注意事項。
 - 不建立虛擬手把、不使用 DLL 注入或 Hook、不加入任何反作弊規避功能。
 

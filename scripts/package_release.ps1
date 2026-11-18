@@ -3,7 +3,14 @@
 #   S2P-Extensions-v<Version>.zip
 #   └─ S2P-Extensions\
 #      ├─ README.md, README_zh-TW.md
-#      └─ <Tool>\<Tool>.exe, README.md, README_zh-TW.md   (one folder per tool)
+#      └─ <Tool>\<Tool>.exe, <Tool>.s2p.json, README.md, README_zh-TW.md
+#
+# It also writes dist\s2p-extensions-updates.json, the update feed that S2P
+# reads for Check for Updates.  Attach it to the GitHub release together with
+# the zip: the tool manifests point at the latest release's copy.
+#
+# The user guides stay on GitHub (manual\ and <tool>\manual\); the READMEs in
+# the zip link to them online.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
 # Requires: Python 3.11+ with PyInstaller (pip install pyinstaller).
@@ -43,10 +50,15 @@ foreach ($tool in $tools) {
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Missing $exe" }
     $target = Join-Path $root $tool.Name
     New-Item -ItemType Directory -Force -Path $target | Out-Null
-    foreach ($file in @("$($tool.Name).exe", "README.md", "README_zh-TW.md")) {
+    foreach ($file in @("$($tool.Name).exe", "$($tool.Name).s2p.json", "README.md", "README_zh-TW.md")) {
         Copy-Item -LiteralPath (Join-Path $built $file) -Destination $target
     }
 }
+
+$feed = Join-Path $repo "dist\s2p-extensions-updates.json"
+$manifests = @(foreach ($tool in $tools) { Join-Path $root "$($tool.Name)\$($tool.Name).s2p.json" })
+& $Python (Join-Path $repo "scripts\tool_manifest.py") feed $Version $feed $manifests
+if ($LASTEXITCODE -ne 0) { throw "Could not write the update feed." }
 
 $zip = Join-Path $repo "dist\S2P-Extensions-v$Version.zip"
 $hashPath = "$zip.sha256"

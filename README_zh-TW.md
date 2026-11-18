@@ -1,6 +1,6 @@
 # S2P-Extensions
 
-[English](README.md) · [S2P-Joystick-Macro](macro/README_zh-TW.md) · [開發擴充工具](docs/development_zh-TW.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
+[English](README.md) · [使用手冊](manual/USER_GUIDE_zh-TW.md) · [S2P-Joystick-Macro](macro/README_zh-TW.md) · [開發擴充工具](docs/development_zh-TW.md) · [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite)
 
 [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite) 的選用擴充工具集合。每個工具都是獨立程式，
 透過 S2P 的「擴充工具」介面（Windows Named Pipe，協定 v1）提交輸入或讀取控制器狀態；
@@ -10,6 +10,7 @@ S2P 仍是唯一的虛擬 XInput 手把輸出。S2P 不需要這些工具也能�
 |---|---|---|
 | `sdk/` | 共用 IPC Client（`s2p_ext`），只用標準函式庫 | 可用 |
 | `macro/` | S2P-Joystick-Macro：錄製、播放、編輯手把按鍵與搖桿操作 | 可用（v0.1.0） |
+| `manual/` | 共用使用手冊；各工具的手冊在各自資料夾內（`macro/manual/`） | 可用 |
 | `docs/` | 開發文件 | 可用 |
 | `release/`、`scripts/` | 發佈 zip 內的說明文件與打包腳本 | 可用 |
 | `tests/` | 單元測試與搭配 S2P 的整合測試 | 可用 |

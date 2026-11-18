@@ -5,11 +5,16 @@
 [S2P-XInput-Lite](https://github.com/duoduo-88/S2P-XInput-Lite) 的選用擴充工具。每個資料夾是一個獨立工具，
 透過 S2P 的「擴充工具」介面送出輸入或讀取控制器狀態；S2P 仍是唯一的虛擬 XInput 手把，不需要這些工具也能正常運作。
 
-## 內容
+## 使用手冊
 
-| 資料夾 | 工具 |
-|---|---|
-| `S2P-Joystick-Macro\` | 錄製、播放、編輯手把按鍵與搖桿操作（說明見資料夾內的 `README_zh-TW.md`） |
+使用手冊放在線上：
+
+- [S2P-Extensions 使用手冊](https://github.com/duoduo-88/S2P-Extensions/blob/main/manual/USER_GUIDE_zh-TW.md)：安裝、在 S2P 連接工具、權限與疑難排解。
+- 每個工具各有自己的手冊：
+
+| 資料夾 | 工具 | 手冊 |
+|---|---|---|
+| `S2P-Joystick-Macro\` | 錄製、播放、編輯手把按鍵與搖桿操作 | [使用手冊](https://github.com/duoduo-88/S2P-Extensions/blob/main/macro/manual/USER_GUIDE_zh-TW.md) |
 
 ## 使用方式
 
@@ -18,6 +23,7 @@
    最多可同時啟用 4 個工具。
 3. 依各工具說明在「權限」勾選需要的權限，再按「開啟」。
 4. 已啟用的工具會在 S2P 連線開始時自動於背景啟動；關閉 S2P 時，工具也會一起關閉。
+5. 請讓每個工具的 `.s2p.json` 檔和 EXE 放在一起，S2P 的「檢查更新」會讀取它來尋找新版本。
 
 ## 責任歸屬
 
