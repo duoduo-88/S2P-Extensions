@@ -2,7 +2,7 @@
 #
 #   S2P-Extensions-v<Version>.zip
 #   └─ S2P-Extensions\
-#      ├─ README.md, README_zh-TW.md
+#      ├─ LICENSE, README.md, README_zh-TW.md
 #      └─ <Tool>\<Tool>.exe, <Tool>.s2p.json, README.md, README_zh-TW.md
 #
 # It also writes dist\s2p-extensions-updates.json, the update feed that S2P
@@ -41,6 +41,8 @@ New-Item -ItemType Directory -Force -Path $root | Out-Null
 foreach ($name in @("README.md", "README_zh-TW.md")) {
     Copy-Item -LiteralPath (Join-Path $repo "release\$name") -Destination $root
 }
+# GPL-3.0: the license text ships with the executables.
+Copy-Item -LiteralPath (Join-Path $repo "LICENSE") -Destination $root
 
 foreach ($tool in $tools) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $repo $tool.Build) -Python $Python -SkipTests

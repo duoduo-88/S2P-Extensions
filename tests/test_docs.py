@@ -47,7 +47,7 @@ class DocumentationLinkTests(unittest.TestCase):
         # The zip holds S2P-Extensions/README*.md and S2P-Joystick-Macro/ with
         # its EXE and READMEs; the user guides stay online.
         zip_files = {
-            "README.md", "README_zh-TW.md",
+            "LICENSE", "README.md", "README_zh-TW.md",
             "S2P-Joystick-Macro/README.md", "S2P-Joystick-Macro/README_zh-TW.md",
         }
         shipped = {

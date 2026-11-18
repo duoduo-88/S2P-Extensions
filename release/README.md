@@ -40,3 +40,10 @@ from the S2P-XInput-Lite main program. You are responsible for how you use
 them and for the results. Some games and online services prohibit external
 input or automation; check their rules before use. This project provides no
 feature to bypass any anti-cheat system.
+
+## License
+
+S2P-Extensions is licensed under the [GNU General Public License v3.0](LICENSE),
+the same license as S2P-XInput-Lite. You may use, modify and redistribute it
+under those terms; a modified version you distribute must also be released
+under GPL-3.0 with its source code.
