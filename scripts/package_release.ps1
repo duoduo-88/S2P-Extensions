@@ -49,8 +49,15 @@ foreach ($tool in $tools) {
 }
 
 $zip = Join-Path $repo "dist\S2P-Extensions-v$Version.zip"
-if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
+$hashPath = "$zip.sha256"
+foreach ($old in @($zip, $hashPath)) {
+    if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force }
+}
 Compress-Archive -Path $root -DestinationPath $zip
+# Same checksum file as S2P-XInput-Lite releases: "<HASH>  <zip name>".
+$zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+Set-Content -LiteralPath $hashPath -Value "$zipHash  $(Split-Path -Leaf $zip)" -Encoding ascii
 Write-Host "Packed $zip"
+Write-Host "SHA256 $zipHash"
 Get-ChildItem -LiteralPath $root -Recurse -File |
     ForEach-Object { "  " + $_.FullName.Substring($stage.Length + 1) }
