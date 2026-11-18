@@ -145,8 +145,39 @@ Use the buttons below the step table:
 | **Up** / **Down** | Move the selected step. |
 
 In the **Edit step** window you can set the duration, the buttons held, LT /
-RT (0–255) and both sticks (X, Y from −32768 to 32767). Keep each step at least
-16 ms so games always see it. Every change is saved at once.
+RT (0–255) and both sticks (X, Y from −32768 to 32767). Every change is saved
+at once.
+
+A step is the whole controller state for its duration, not a single button.
+Check several buttons to hold them together; the table shows them as
+`A + B`. To hold A and tap B, list A in every step: `A`, then `A + B`, then
+`A`. A recording starts a new step at every change, so two buttons pressed a
+few milliseconds apart are recorded as a short step with only the first
+button before the `A + B` step.
+
+A game reads the controller a fixed number of times a second, at moments
+that do not line up with the macro, and S2P adds tool input to the
+controller's next report. A step can fall between two reads, so keep each
+step at least two of the game's reads long. How often a game reads input is
+not always its frame rate: many fighting and action games read 60 times a
+second even when the screen runs at 144 FPS.
+
+Choose the game's rate in **Game input rate** under the step table; the
+**?** next to it explains it. Shorter steps are shown in orange, with a
+count next to the setting:
+
+| Game input rate | Steps shown in orange |
+|---|---|
+| 30 Hz | under 66 ms |
+| 60 Hz (default) | under 33 ms |
+| 144 Hz or more | under 16 ms |
+
+If you are not sure, keep 60 Hz, or test the game: make a macro with one
+10 ms press, set **Repeat** to 20 and **Loop gap ms** to 100 or more (longer
+than the action's cooldown), and count how many presses the game reacts to,
+for example with ammo, typed letters or a training mode input display.
+About 6 means 30 Hz, about 12 means 60 Hz, and all 20 means 144 Hz or more.
+[Playback timing](../../docs/playback-timing.md) has the measurements.
 
 ## 7. Managing macros
 
@@ -178,7 +209,7 @@ RT (0–255) and both sticks (X, Y from −32768 to 32767). Keep each step at le
 | **Record** says S2P does not allow reading controller state | Check **Allow reading controller state** for this tool in S2P's Extensions window. |
 | **Play** says S2P does not allow this tool to submit input | Check **Allow input** for this tool in S2P. |
 | **Now** shows **No input was recorded.** | Press a button or trigger after selecting **Record**. To record only stick movement, check **Record sticks**. |
-| The game misses short presses | Make each step at least 16 ms, or play at a lower **Speed**. |
+| The game misses short presses | Lengthen the orange steps (check **Game input rate**), or play at a lower **Speed**. |
 | A repeated button counts as one long press | Increase **Loop gap ms**. |
 | Stick moves are skipped | Another extension tool controls that stick; disable it or remove its stick use. |
 | The trigger does nothing | Check **Controller trigger**, set a combination with **Set Trigger...**, and allow reading controller state in S2P. |

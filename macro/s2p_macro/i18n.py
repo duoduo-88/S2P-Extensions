@@ -23,6 +23,27 @@ EN = {
     "左搖桿": "Left stick",
     "右搖桿": "Right stick",
     "共 {count} 步，總長 {seconds:.2f} 秒": "{count} steps, {seconds:.2f} s total",
+    "橘色 {short} 步：短於 {ms} ms": "{short} in orange: under {ms} ms",
+    "遊戲讀取輸入": "Game input rate",
+    (
+        "遊戲每秒讀取手把幾次，不一定等於畫面 FPS；例如格鬥遊戲常固定每秒 60 次。\n\n"
+        "短於下列長度的步驟會以橘色標示：30 Hz 為 66 ms，60 Hz 為 33 ms，144 Hz 以上為 16 ms。\n\n"
+        "不確定時選 60 Hz，或用巨集實測：\n"
+        "1. 播放 20 次 10 ms 的短按，循環間隔 100 ms 以上，並比該動作的冷卻時間長。\n"
+        "2. 數遊戲做出反應的次數，例如角色跳了幾下、開了幾槍。\n"
+        "3. 約 6 次有反應是 30 Hz，約 12 次是 60 Hz，20 次都有反應是 144 Hz 以上。"
+    ): (
+        "How many times a second the game reads the controller. This is not always its "
+        "frame rate; fighting games, for example, often read 60 times a second.\n\n"
+        "Steps shorter than this are shown in orange: 66 ms at 30 Hz, 33 ms at 60 Hz, "
+        "16 ms at 144 Hz or more.\n\n"
+        "Not sure? Choose 60 Hz, or test it with a macro:\n"
+        "1. Play a 10 ms press 20 times with a loop gap of 100 ms or more, longer than "
+        "the action's cooldown.\n"
+        "2. Count how many times the game responds, for example jumps or shots.\n"
+        "3. About 6 responses means 30 Hz, about 12 means 60 Hz, all 20 means 144 Hz or more."
+    ),
+    "{hz} Hz 以上": "{hz} Hz or more",
     "錄製與播放": "Record and play",
     "錄製": "Record",
     "播放": "Play",
@@ -63,6 +84,12 @@ EN = {
     "就緒": "Ready",
     "錄製中：等待第一個輸入…": "Recording: waiting for the first input…",
     "錄製中：{seconds:.1f} 秒，{count} 次變化": "Recording: {seconds:.1f} s, {count} changes",
+    "錄製中：{seconds:.1f} 秒，{count} 次變化，未讀到 {missed} 幀": (
+        "Recording: {seconds:.1f} s, {count} changes, {missed} frames missed"
+    ),
+    "錄製時未讀到 {missed}/{total} 幀，極短的變化可能沒錄到。": (
+        "{missed}/{total} frames were missed while recording; very short changes may be lost."
+    ),
     "播放中：第 {loop} 次，第 {step}/{total} 步": "Playing: pass {loop}, step {step}/{total}",
     "播放完成（{loops} 次）": "Playback finished ({loops} passes)",
     "播放已停止": "Playback stopped",
@@ -91,12 +118,15 @@ EN = {
     "所有檔案": "All files",
     "編輯步驟": "Edit step",
     "持續時間（ms）": "Duration (ms)",
+    "可勾選多個按鍵，代表同時按住。": "Check several buttons to hold them together.",
     "左搖桿 X / Y": "Left stick X / Y",
     "右搖桿 X / Y": "Right stick X / Y",
     "確定": "OK",
     "取消": "Cancel",
     "步驟無效：{error}": "Invalid step: {error}",
-    "建議每個步驟至少 16 ms，遊戲才一定讀得到。": "Keep each step at least 16 ms so games always see it.",
+    "遊戲每秒讀取輸入 {rate}：每個步驟建議至少 {ms} ms，太短可能讀不到。": (
+        "The game reads input at {rate}: keep each step at least {ms} ms."
+    ),
     "使用聲明": "Notice",
     "我已了解": "I understand",
     "結束": "Quit",

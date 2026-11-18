@@ -9,6 +9,7 @@ import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from tkinter import font as tkfont
 
 from s2p_ext import AutoConnection, ExtensionClient
 
@@ -16,8 +17,9 @@ from . import __version__
 from .engine import MacroPlayer, MacroRecorder, TriggerMonitor
 from .i18n import NOTICE, Translator
 from .model import BUTTON_ORDER, Macro, MacroFormatError, MacroLibrary, Step
-from .settings import SPEEDS, AppSettings, data_directory
+from .settings import GAME_INPUT_RATES, SPEEDS, AppSettings, data_directory
 from .single_instance import SingleInstance
+from .tooltip_layout import wrap_tooltip_text
 from .tray import SystemTrayIcon
 
 APP_NAME = "S2P-Joystick-Macro"  # product name; never translated
@@ -34,6 +36,17 @@ REJECT_REASON = {
 STICK_LABEL = {"left": "左搖桿", "right": "右搖桿"}
 COLORS = {"connected": "#138A36", "connecting": "#D97A00", "rejected": "#C62828"}
 STICK_CLAIM_TIMEOUT = 3.0
+# Steps shorter than the selected game input rate's GAME_INPUT_RATES value may
+# be missed by the game; they are shown in this color.
+SHORT_STEP_COLOR = "#B45309"
+GAME_INPUT_HELP = (
+    "遊戲每秒讀取手把幾次，不一定等於畫面 FPS；例如格鬥遊戲常固定每秒 60 次。\n\n"
+    "短於下列長度的步驟會以橘色標示：30 Hz 為 66 ms，60 Hz 為 33 ms，144 Hz 以上為 16 ms。\n\n"
+    "不確定時選 60 Hz，或用巨集實測：\n"
+    "1. 播放 20 次 10 ms 的短按，循環間隔 100 ms 以上，並比該動作的冷卻時間長。\n"
+    "2. 數遊戲做出反應的次數，例如角色跳了幾下、開了幾槍。\n"
+    "3. 約 6 次有反應是 30 Hz，約 12 次是 60 Hz，20 次都有反應是 144 Hz 以上。"
+)
 BACKGROUND_ENV = "S2P_EXTENSION_BACKGROUND"  # set by S2P when it starts us itself
 
 
@@ -53,6 +66,116 @@ def center_window(window, parent=None):
         x = (window.winfo_screenwidth() - width) // 2
         y = (window.winfo_screenheight() - height) // 3
     window.geometry(f"+{max(0, x)}+{max(0, y)}")
+
+
+def _work_area(widget):
+    """Usable area (taskbar excluded) of the monitor showing ``widget``."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        class MonitorInfo(ctypes.Structure):
+            _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                        ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+
+        user32 = ctypes.windll.user32
+        user32.MonitorFromWindow.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+        user32.MonitorFromWindow.restype = ctypes.c_void_p
+        user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MonitorInfo)]
+        monitor = user32.MonitorFromWindow(widget.winfo_toplevel().winfo_id(), 2)  # NEAREST
+        info = MonitorInfo()
+        info.cbSize = ctypes.sizeof(MonitorInfo)
+        if monitor and user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+            work = info.rcWork
+            return work.left, work.top, work.right, work.bottom
+    except (AttributeError, OSError):
+        pass
+    return 0, 0, widget.winfo_screenwidth(), widget.winfo_screenheight()
+
+
+class HelpTip:
+    """S2P's "?" help: a framed "?" whose text shows while it is hovered.
+
+    Same look and placement as S2P-XInput-Lite's ``create_help``/``ToolTip``:
+    a 320 px bubble to the lower right of the "?", moved to the other side
+    when it would leave the monitor's work area.
+    """
+
+    WRAP = 320
+    MARGIN = 5
+
+    def __init__(self, parent, text):
+        self.text = text
+        self.label = tk.Label(parent, text="?", width=2, relief="solid", borderwidth=1,
+                              cursor="question_arrow")
+        self._window = None
+        self.label.bind("<Enter>", lambda _event: self.show(), add="+")
+        self.label.bind("<Leave>", lambda _event: self.hide(), add="+")
+        self.label.bind("<Destroy>", lambda _event: self.hide(), add="+")
+
+    @property
+    def shown(self):
+        return self._window is not None
+
+    def show(self):
+        if self._window is not None:
+            return
+        owner = self.label.winfo_toplevel()
+        window = tk.Toplevel(owner)
+        window.withdraw()
+        window.wm_overrideredirect(True)
+        window.transient(owner)
+        left, top, right, bottom = _work_area(self.label)
+        label = tk.Label(window, text="", justify="left", relief="solid", borderwidth=1,
+                         padx=8, pady=6, wraplength=0)
+        # Wrapped like S2P's help so numbers keep their units and punctuation
+        # never starts a line (Tk's own wrapping breaks Chinese text badly).
+        measure = tkfont.Font(font=label.cget("font")).measure
+        label.configure(text=wrap_tooltip_text(
+            self.text, min(self.WRAP, max(160, right - left - 32)), measure))
+        label.pack()
+        window.update_idletasks()
+        width, height = window.winfo_reqwidth(), window.winfo_reqheight()
+        anchor_x, anchor_y = self.label.winfo_rootx(), self.label.winfo_rooty()
+        x = anchor_x + 25
+        y = anchor_y + max(25, self.label.winfo_height() + 5)
+        if x + width > right - self.MARGIN:
+            x = anchor_x - width - self.MARGIN
+        if y + height > bottom - self.MARGIN:
+            y = anchor_y - height - self.MARGIN
+        x = max(left + self.MARGIN, min(x, max(left + self.MARGIN, right - width - self.MARGIN)))
+        y = max(top + self.MARGIN, min(y, max(top + self.MARGIN, bottom - height - self.MARGIN)))
+        window.wm_geometry(f"+{x}+{y}")
+        window.deiconify()
+        self._window = window
+
+    def hide(self):
+        window, self._window = self._window, None
+        if window is not None:
+            try:
+                window.destroy()
+            except tk.TclError:
+                pass
+
+
+def bring_to_front(window):
+    """Restore a minimized window and make it the foreground window.
+
+    Works when the second copy started by S2P's Open passed on its right to
+    take the foreground (see single_instance.allow_foreground_handoff).
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        hwnd = int(window.wm_frame(), 16)
+        if user32.IsIconic(hwnd):
+            user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        user32.SetForegroundWindow(hwnd)
+    except (AttributeError, OSError, ValueError, tk.TclError):
+        pass
 
 
 def make_icon(master, kind, size, color):
@@ -121,7 +244,9 @@ class MacroApp:
         self.scale = max(1.0, root.winfo_fpixels("1i") / 96.0)
         root.title(APP_TITLE)
         self._set_window_icon()
-        root.minsize(int(640 * self.scale), int(480 * self.scale))
+        # 480 px plus the Game input rate row, so the smallest window still
+        # shows as many step rows as before that row was added.
+        root.minsize(int(640 * self.scale), int(512 * self.scale))
         # X keeps the tool running (and connected) in the notification area,
         # so controller triggers still work; Exit there really quits.
         root.protocol("WM_DELETE_WINDOW", self.hide_to_tray)
@@ -267,6 +392,7 @@ class MacroApp:
             )
         scroll = ttk.Scrollbar(steps, orient="vertical", command=self.step_tree.yview)
         self.step_tree.configure(yscrollcommand=scroll.set)
+        self.step_tree.tag_configure("short", foreground=SHORT_STEP_COLOR)
         self.step_tree.grid(row=0, column=0, sticky="nsew")
         scroll.grid(row=0, column=1, sticky="ns")
         self.step_tree.bind("<Double-1>", lambda _event: self.edit_step())
@@ -280,6 +406,22 @@ class MacroApp:
                 side="left", padx=(0, 4))
         self.summary_label = ttk.Label(step_buttons, text="")
         self.summary_label.pack(side="right")
+        # Own line so it stays readable at the minimum window width.
+        rate_row = ttk.Frame(steps)
+        rate_row.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(6, 0))
+        ttk.Label(rate_row, text=tr("遊戲讀取輸入")).pack(side="left")
+        self._rate_labels = {hz: self._rate_label(hz) for hz in GAME_INPUT_RATES}
+        self.game_input_var = tk.StringVar(value=self._rate_labels[self.settings.game_input_hz])
+        rate_box = ttk.Combobox(
+            rate_row, width=10, state="readonly", textvariable=self.game_input_var,
+            values=list(self._rate_labels.values()),
+        )
+        rate_box.pack(side="left", padx=(6, 4))
+        self.rate_help = HelpTip(rate_row, tr(GAME_INPUT_HELP))
+        self.rate_help.label.pack(side="left", padx=(0, 12))
+        rate_box.bind("<<ComboboxSelected>>", lambda _event: self.set_game_input_rate())
+        self.short_label = ttk.Label(rate_row, text="", foreground=SHORT_STEP_COLOR)
+        self.short_label.pack(side="left")
 
         # -- right middle: record / play ------------------------------------
         controls = ttk.LabelFrame(body, text=tr("錄製與播放"), padding=8)
@@ -391,7 +533,10 @@ class MacroApp:
             self.tray.hide()
         self._hidden = False
         self.root.deiconify()
+        if self.root.state() == "iconic":
+            self.root.state("normal")  # minimized: restore it
         self.root.lift()
+        bring_to_front(self.root)
         try:
             self.root.focus_force()
         except tk.TclError:
@@ -522,6 +667,26 @@ class MacroApp:
             self.settings.save(self.settings_path)
         except OSError:
             pass
+
+    @property
+    def short_step_ms(self):
+        """Shortest step the game always reads at the selected input rate."""
+        return GAME_INPUT_RATES[self.settings.game_input_hz]
+
+    def _rate_label(self, hz):
+        return self.tr("{hz} Hz 以上").format(hz=hz) if hz == max(GAME_INPUT_RATES) else f"{hz} Hz"
+
+    def set_game_input_rate(self, hz=None):
+        if hz is None:
+            labels = {label: rate for rate, label in self._rate_labels.items()}
+            hz = labels.get(self.game_input_var.get(), self.settings.game_input_hz)
+        self.settings.game_input_hz = hz
+        self.game_input_var.set(self._rate_labels[hz])
+        self._persist_settings()
+        # Redraw every row with the new limit; a recording redraws on its next tick.
+        self._shown_steps = []
+        if self.recorder is None:
+            self.refresh_steps()
 
     def _save_options(self):
         try:
@@ -754,11 +919,15 @@ class MacroApp:
             keep += 1
         for item in tree.get_children()[keep:]:
             tree.delete(item)
+        # While recording (follow) the last step is still growing: not short yet.
+        settled = len(steps) - 1 if follow else len(steps)
         start = sum(step.duration_ms for step in steps[:keep])
         for index in range(keep, len(steps)):
-            tree.insert("", "end", iid=str(index), values=self._row(index, start, steps[index]))
+            short = index < settled and steps[index].duration_ms < self.short_step_ms
+            tree.insert("", "end", iid=str(index), values=self._row(index, start, steps[index]),
+                        tags=("short",) if short else ())
             start += steps[index].duration_ms
-        self._shown_steps = steps
+        self._shown_steps = steps[:settled]  # a growing last row is always redrawn
         total = sum(step.duration_ms for step in steps)
         if follow and steps:
             tree.see(str(len(steps) - 1))
@@ -769,6 +938,9 @@ class MacroApp:
         self.summary_label.configure(text=self.tr("共 {count} 步，總長 {seconds:.2f} 秒").format(
             count=len(steps), seconds=total / 1000,
         ))
+        short = sum(step.duration_ms < self.short_step_ms for step in steps[:settled])
+        self.short_label.configure(text=self.tr("橘色 {short} 步：短於 {ms} ms").format(
+            short=short, ms=self.short_step_ms) if short else "")
 
     def _selected_steps(self):
         return sorted(int(item) for item in self.step_tree.selection())
@@ -832,7 +1004,8 @@ class MacroApp:
         duration_box = ttk.Spinbox(frame, from_=1, to=600000, increment=10, width=10,
                                    textvariable=duration)
         duration_box.grid(row=0, column=1, sticky="w", padx=(8, 0))
-        ttk.Label(frame, text=tr("建議每個步驟至少 16 ms，遊戲才一定讀得到。"),
+        ttk.Label(frame, text=tr("遊戲每秒讀取輸入 {rate}：每個步驟建議至少 {ms} ms，太短可能讀不到。").format(
+            rate=self._rate_labels[self.settings.game_input_hz], ms=self.short_step_ms),
                   foreground="#666666").grid(row=1, column=0, columnspan=4, sticky="w", pady=(2, 8))
         ttk.Label(frame, text=tr("按鍵")).grid(row=2, column=0, sticky="nw")
         grid = ttk.Frame(frame)
@@ -842,6 +1015,8 @@ class MacroApp:
             pressed[name] = tk.BooleanVar(value=name in step.buttons)
             ttk.Checkbutton(grid, text=name, variable=pressed[name]).grid(
                 row=index // 5, column=index % 5, sticky="w", padx=(0, 10))
+        ttk.Label(grid, text=tr("可勾選多個按鍵，代表同時按住。"), foreground="#666666").grid(
+            row=(len(BUTTON_ORDER) + 4) // 5, column=0, columnspan=5, sticky="w", pady=(2, 0))
         values = {}
         for row, (label, keys, low, high) in enumerate((
             ("LT / RT", (("lt", step.lt), ("rt", step.rt)), 0, 255),
@@ -927,6 +1102,10 @@ class MacroApp:
         self._save_macro()
         self.refresh_macro_list(name)
         self._set_status("已錄製「{name}」，共 {count} 步", name=name, count=len(steps))
+        if recorder.frames_missed:
+            self._add_status(
+                "錄製時未讀到 {missed}/{total} 幀，極短的變化可能沒錄到。",
+                missed=recorder.frames_missed, total=recorder.frames_total)
         if recorder.error is not None:
             self._add_status("錄製中斷：{error}", error=recorder.error)
 
@@ -1106,6 +1285,11 @@ class MacroApp:
                 self.refresh_steps(steps=self.recorder.preview_steps(), follow=True)
                 if self.recorder.first_input_at is None:
                     self._set_status("錄製中：等待第一個輸入…")
+                elif self.recorder.frames_missed:
+                    self._set_status(
+                        "錄製中：{seconds:.1f} 秒，{count} 次變化，未讀到 {missed} 幀",
+                        seconds=self.recorder.elapsed, count=self.recorder.change_count,
+                        missed=self.recorder.frames_missed)
                 else:
                     self._set_status(
                         "錄製中：{seconds:.1f} 秒，{count} 次變化",

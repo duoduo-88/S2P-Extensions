@@ -103,7 +103,11 @@ sticks** to record the sticks too.
 ## Editing
 
 In the step table you can add, edit (double-click), delete, and move steps up
-or down. Keep each step at least 16 ms so games always see it. Every change is
+or down. Keep each step at least two of the game's input reads long; steps
+shorter than that are shown in orange. Set how often the game reads input
+in **Game input rate** (default 60 Hz: 33 ms; 30 Hz: 66 ms; 144 Hz or more:
+16 ms). It is not always the frame rate.
+A step can hold several buttons at once (`A + B`). Every change is
 saved immediately. Macro files are JSON (`"format": "s2p-macro"`) and can be
 shared with **Import...** / **Export...**.
 

@@ -14,6 +14,24 @@ import threading
 EVENT_NAME = "Local\\S2P-Joystick-Macro.Show"
 ERROR_ALREADY_EXISTS = 183
 WAIT_OBJECT_0 = 0
+ASFW_ANY = 0xFFFFFFFF
+
+
+def allow_foreground_handoff():
+    """Let the running copy take the foreground when it shows its window.
+
+    Windows only lets the foreground process (or one it just started) bring a
+    window to the front.  This second copy was started by S2P's Open button or
+    a double-click, so it may; the running copy in the background may not.
+    Passing the right on before signalling makes the shown window come to the
+    front with focus instead of only flashing on the taskbar.
+    """
+    try:
+        user32 = ctypes.WinDLL("user32")
+        user32.AllowSetForegroundWindow.argtypes = (ctypes.c_ulong,)
+        user32.AllowSetForegroundWindow(ASFW_ANY)
+    except (AttributeError, OSError):
+        pass
 
 
 class SingleInstance:
@@ -43,6 +61,7 @@ class SingleInstance:
         if not event:
             return True  # cannot coordinate; just run
         if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
+            allow_foreground_handoff()
             kernel32.SetEvent(event)
             kernel32.CloseHandle(event)
             self.primary = False

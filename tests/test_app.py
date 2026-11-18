@@ -1,5 +1,6 @@
 """Smoke test of the Tk window with a fake S2P connection."""
 
+import gc
 import tempfile
 import time
 import tkinter as tk
@@ -106,6 +107,11 @@ class MacroAppTests(unittest.TestCase):
                 self.app.close()
         except tk.TclError:
             pass
+        # Free this window's Tk objects now, on the main thread.  Left to the
+        # garbage collector they may be freed later on a worker thread of
+        # another test, where Tk raises "main thread is not in main loop".
+        self.app = self.root = None
+        gc.collect()
 
     def pump(self, seconds):
         deadline = time.monotonic() + seconds
@@ -135,6 +141,55 @@ class MacroAppTests(unittest.TestCase):
         self.pump(0.2)
         self.assertIn("Connected to S2P (input / read)", self.app.connection_label.cget("text"))
 
+    def test_steps_a_game_may_miss_are_marked(self):
+        tree = self.app.step_tree
+        self.app.refresh_steps(steps=[Step(20, ("A",)), Step(33, ("A", "B")), Step(32, ())])
+        self.assertEqual([tree.item(item, "tags") for item in tree.get_children()],
+                         [("short",), "", ("short",)])
+        self.assertEqual(tree.set("1", "buttons"), "A + B")
+        self.assertEqual(self.app.short_label.cget("text"), "2 in orange: under 33 ms")
+        self.app.refresh_steps(steps=[Step(40, ("A",))])
+        self.assertEqual(self.app.short_label.cget("text"), "")
+
+    def test_the_growing_last_step_of_a_recording_is_not_marked(self):
+        tree = self.app.step_tree
+        self.app.refresh_steps(steps=[Step(40, ("A",)), Step(5, ("B",))], follow=True)
+        self.assertEqual(tree.item("1", "tags"), "")
+        self.assertEqual(self.app.short_label.cget("text"), "")
+        # The recording ends with that step still short: now it is marked.
+        self.app.refresh_steps(steps=[Step(40, ("A",)), Step(5, ("B",))])
+        self.assertEqual(tree.item("1", "tags"), ("short",))
+        self.assertIn("1 in orange", self.app.short_label.cget("text"))
+
+    def test_game_input_rate_sets_the_short_step_limit(self):
+        tree = self.app.step_tree
+        self.select("Buttons")  # two 30 ms steps
+        self.assertEqual(self.app.game_input_var.get(), "60 Hz")
+        self.assertEqual(tree.item("0", "tags"), ("short",))
+        self.app.set_game_input_rate(144)
+        self.assertEqual(self.app.game_input_var.get(), "144 Hz or more")
+        self.assertEqual(tree.item("0", "tags"), "")
+        self.assertEqual(self.app.short_label.cget("text"), "")
+        self.app.game_input_var.set("30 Hz")  # as picked in the list
+        self.app.set_game_input_rate()
+        self.assertEqual(self.app.short_label.cget("text"), "2 in orange: under 66 ms")
+        self.assertEqual(AppSettings.load(self.data / "settings.json").game_input_hz, 30)
+        self.app.toggle_language()
+        self.assertEqual(self.app.game_input_var.get(), "30 Hz")
+        self.app.set_game_input_rate(144)
+        self.assertEqual(self.app.game_input_var.get(), "144 Hz 以上")
+        # A value from a hand-edited settings file that is not offered falls back to 60.
+        (self.data / "odd.json").write_text('{"game_input_hz": 75}', encoding="utf-8")
+        self.assertEqual(AppSettings.load(self.data / "odd.json").game_input_hz, 60)
+
+    def test_game_input_rate_help_opens_on_hover(self):
+        help_tip = self.app.rate_help
+        self.assertIn("16 ms at 144 Hz", help_tip.text)
+        help_tip.show()
+        self.assertTrue(help_tip.shown)
+        help_tip.hide()
+        self.assertFalse(help_tip.shown)
+
     def test_buttons_only_macro_plays_without_claiming_sticks(self):
         self.select("Buttons")
         self.app.start_playback()
@@ -144,6 +199,23 @@ class MacroAppTests(unittest.TestCase):
         self.assertEqual([state for state, _left in connection.client.states[:2]], [("A",), ("B",)])
         self.assertEqual(connection.client.released, 1)
         self.assertIn("Playback finished", self.app.status_label.cget("text"))
+
+    def test_finished_recording_reports_missed_frames(self):
+        class Recorded:
+            error = None
+            frames_missed = 3
+            frames_total = 120
+
+            def stop(self):
+                return [Step(30, ("A",))]
+
+        self.app.recorder = Recorded()
+        self.app._finish_recording()
+        self.assertIn("3/120 frames were missed", self.app.status_text)
+        Recorded.frames_missed = 0
+        self.app.recorder = Recorded()
+        self.app._finish_recording()
+        self.assertNotIn("missed", self.app.status_text)
 
     def test_status_line_follows_a_language_switch(self):
         self.app.toggle_language()  # zh: record finds nothing
@@ -175,7 +247,7 @@ class MacroAppTests(unittest.TestCase):
         package = Path(app_module.__file__).resolve().parent
         missing = []
         for path in sorted(package.glob("*.py")):
-            if path.name == "i18n.py":
+            if path.name in ("i18n.py", "tooltip_layout.py"):  # not UI text
                 continue
             for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
                 if (isinstance(node, ast.Constant) and isinstance(node.value, str)
@@ -289,6 +361,17 @@ class MacroAppTests(unittest.TestCase):
         self.app._show_requests.put("show")  # what SingleInstance reports
         self.pump(0.2)
         self.assertNotEqual(self.root.state(), "withdrawn")
+
+    def test_open_restores_a_minimized_window_and_brings_it_to_front(self):
+        self.root.deiconify()
+        self.root.iconify()
+        self.pump(0.1)
+        self.assertEqual(self.root.state(), "iconic")
+        with patch.object(app_module, "bring_to_front") as front:
+            self.app._show_requests.put("show")  # S2P's Open on a running copy
+            self.pump(0.2)
+        self.assertEqual(self.root.state(), "normal")
+        front.assert_called_once_with(self.root)
 
     def test_closing_s2p_closes_the_tool(self):
         self.select("Buttons")
