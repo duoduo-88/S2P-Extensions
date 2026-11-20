@@ -153,13 +153,35 @@ class RecorderTests(unittest.TestCase):
             return reply
 
         # Run the polling loop in this thread: the result must not depend on
-        # how fast a background thread happens to be scheduled.
-        recorder = MacroRecorder(get_input, poll_seconds=0)
+        # how fast a background thread happens to be scheduled.  Every read
+        # comes 30 ms after the previous one: the recorder stalled.
+        ticks = iter(range(10_000))
+        recorder = MacroRecorder(get_input, poll_seconds=0, clock=lambda: next(ticks) * 0.03)
         recorder._run()
         self.assertIsInstance(recorder.error, ConnectionError)
         self.assertEqual(recorder.frames_missed, 2 + 3)
         self.assertEqual(recorder.frames_seen, 7)
         self.assertEqual(recorder.frames_total, 12)
+
+    def test_reports_skipped_by_a_fast_controller_are_not_missed(self):
+        # A 1000 Hz pad read every 4 ms skips reports on every read; that is
+        # not a stall, so nothing is reported as missed.
+        script = [{"frame": 1, "buttons": ["A"]}] + [
+            {"frame": frame, "buttons": ["A"] if frame < 20 else []} for frame in range(5, 40, 4)
+        ]
+        replies = iter(script)
+
+        def get_input():
+            reply = next(replies, None)
+            if reply is None:
+                raise ConnectionError("end of script")
+            return reply
+
+        ticks = iter(range(10_000))
+        recorder = MacroRecorder(get_input, poll_seconds=0, clock=lambda: next(ticks) * 0.004)
+        recorder._run()
+        self.assertEqual(recorder.frames_missed, 0)
+        self.assertEqual(recorder.frames_seen, len(script))
 
     def test_connection_error_stops_recording(self):
         def get_input():

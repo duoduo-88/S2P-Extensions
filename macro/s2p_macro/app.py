@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import functools
+import math
 import os
 import queue
 import sys
@@ -41,7 +43,7 @@ STICK_CLAIM_TIMEOUT = 3.0
 SHORT_STEP_COLOR = "#B45309"
 GAME_INPUT_HELP = (
     "遊戲每秒讀取手把幾次，不一定等於畫面 FPS；例如格鬥遊戲常固定每秒 60 次。\n\n"
-    "短於下列長度的步驟會以橘色標示：30 Hz 為 66 ms，60 Hz 為 33 ms，144 Hz 以上為 16 ms。\n\n"
+    "播放時短於下列長度的步驟會以橘色標示：{limits}。\n\n"
     "不確定時選 60 Hz，或用巨集實測：\n"
     "1. 播放 20 次 10 ms 的短按，循環間隔 100 ms 以上，並比該動作的冷卻時間長。\n"
     "2. 數遊戲做出反應的次數，例如角色跳了幾下、開了幾槍。\n"
@@ -68,20 +70,29 @@ def center_window(window, parent=None):
     window.geometry(f"+{max(0, x)}+{max(0, y)}")
 
 
+@functools.lru_cache(maxsize=1)
+def _monitor_api():
+    """(user32, MonitorInfo) on a private WinDLL, prototypes set once."""
+    import ctypes
+    from ctypes import wintypes
+
+    class MonitorInfo(ctypes.Structure):
+        _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                    ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+
+    user32 = ctypes.WinDLL("user32")
+    user32.MonitorFromWindow.argtypes = (ctypes.c_void_p, ctypes.c_uint)
+    user32.MonitorFromWindow.restype = ctypes.c_void_p
+    user32.GetMonitorInfoW.argtypes = (ctypes.c_void_p, ctypes.POINTER(MonitorInfo))
+    return user32, MonitorInfo
+
+
 def _work_area(widget):
     """Usable area (taskbar excluded) of the monitor showing ``widget``."""
     try:
         import ctypes
-        from ctypes import wintypes
 
-        class MonitorInfo(ctypes.Structure):
-            _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
-                        ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
-
-        user32 = ctypes.windll.user32
-        user32.MonitorFromWindow.argtypes = [ctypes.c_void_p, ctypes.c_uint]
-        user32.MonitorFromWindow.restype = ctypes.c_void_p
-        user32.GetMonitorInfoW.argtypes = [ctypes.c_void_p, ctypes.POINTER(MonitorInfo)]
+        user32, MonitorInfo = _monitor_api()
         monitor = user32.MonitorFromWindow(widget.winfo_toplevel().winfo_id(), 2)  # NEAREST
         info = MonitorInfo()
         info.cbSize = ctypes.sizeof(MonitorInfo)
@@ -417,7 +428,7 @@ class MacroApp:
             values=list(self._rate_labels.values()),
         )
         rate_box.pack(side="left", padx=(6, 4))
-        self.rate_help = HelpTip(rate_row, tr(GAME_INPUT_HELP))
+        self.rate_help = HelpTip(rate_row, tr(GAME_INPUT_HELP).format(limits=self._limits_text()))
         self.rate_help.label.pack(side="left", padx=(0, 12))
         rate_box.bind("<<ComboboxSelected>>", lambda _event: self.set_game_input_rate())
         self.short_label = ttk.Label(rate_row, text="", foreground=SHORT_STEP_COLOR)
@@ -464,11 +475,15 @@ class MacroApp:
             values=[f"{speed:g}x" for speed in SPEEDS],
         )
         speed_box.pack(side="left", padx=(6, 12))
-        speed_box.bind("<<ComboboxSelected>>", lambda _event: self._save_options())
-        ttk.Label(row, text=tr("循環間隔 ms")).pack(side="left")
+        speed_box.bind("<<ComboboxSelected>>", lambda _event: self._speed_changed())
+        self.gap_label = ttk.Label(row, text=tr("循環間隔 ms"))
+        self.gap_label.pack(side="left")
         self.gap_var = tk.StringVar(value=str(self.settings.loop_gap_ms))
         ttk.Spinbox(row, from_=0, to=5000, increment=10, width=5, textvariable=self.gap_var,
                     command=self._save_options).pack(side="left", padx=(6, 0))
+        # Typing a value updates the short-step note at once; it is saved later.
+        for var in (self.loops_var, self.gap_var):
+            var.trace_add("write", lambda *_args: self._update_short_note())
 
         row = ttk.Frame(controls)
         row.pack(fill="x", pady=(8, 0))
@@ -532,9 +547,7 @@ class MacroApp:
         if self.tray is not None:
             self.tray.hide()
         self._hidden = False
-        self.root.deiconify()
-        if self.root.state() == "iconic":
-            self.root.state("normal")  # minimized: restore it
+        self.root.deiconify()  # also restores a minimized window (and keeps it maximized)
         self.root.lift()
         bring_to_front(self.root)
         try:
@@ -673,6 +686,60 @@ class MacroApp:
         """Shortest step the game always reads at the selected input rate."""
         return GAME_INPUT_RATES[self.settings.game_input_hz]
 
+    def _plays_short(self, duration_ms):
+        """True when ``duration_ms`` played at the current Speed is too short."""
+        return duration_ms / float(self.settings.speed) < self.short_step_ms
+
+    @staticmethod
+    def _int_or(var, fallback):
+        try:
+            return int(var.get())
+        except (ValueError, tk.TclError):
+            return fallback
+
+    def _loop_gap_plays_short(self):
+        """The neutral gap between repeats is a step too (none when playing once)."""
+        loops = self._int_or(self.loops_var, self.settings.loops)
+        gap = self._int_or(self.gap_var, self.settings.loop_gap_ms)
+        return loops != 1 and gap > 0 and self._plays_short(gap)
+
+    def _limits_text(self):
+        """Each GAME_INPUT_RATES limit as text ("66 ms at 30 Hz, ...")."""
+        separator = "、" if self.settings.language == "zh" else ", "
+        return separator.join(
+            self.tr("{rate} 為 {ms} ms").format(rate=self._rate_label(hz), ms=ms)
+            for hz, ms in GAME_INPUT_RATES.items()
+        )
+
+    def _update_short_note(self):
+        label = getattr(self, "short_label", None)
+        if label is None:
+            return
+        short = getattr(self, "_short_steps", 0)
+        gap_short = self._loop_gap_plays_short()
+        if short and gap_short:
+            text = self.tr("橘色 {short} 步與循環間隔：播放時短於 {ms} ms")
+        elif short:
+            text = self.tr("橘色 {short} 步：播放時短於 {ms} ms")
+        elif gap_short:
+            text = self.tr("循環間隔：播放時短於 {ms} ms")
+        else:
+            text = ""
+        label.configure(text=text.format(short=short, ms=self.short_step_ms))
+        gap_label = getattr(self, "gap_label", None)
+        if gap_label is not None:
+            gap_label.configure(foreground=SHORT_STEP_COLOR if gap_short else "")
+
+    def _redraw_steps(self):
+        """Redraw every row with the current limit; a recording redraws on its next tick."""
+        self._shown_steps = []
+        if self.recorder is None:
+            self.refresh_steps()
+
+    def _speed_changed(self):
+        self._save_options()
+        self._redraw_steps()
+
     def _rate_label(self, hz):
         return self.tr("{hz} Hz 以上").format(hz=hz) if hz == max(GAME_INPUT_RATES) else f"{hz} Hz"
 
@@ -683,10 +750,7 @@ class MacroApp:
         self.settings.game_input_hz = hz
         self.game_input_var.set(self._rate_labels[hz])
         self._persist_settings()
-        # Redraw every row with the new limit; a recording redraws on its next tick.
-        self._shown_steps = []
-        if self.recorder is None:
-            self.refresh_steps()
+        self._redraw_steps()
 
     def _save_options(self):
         try:
@@ -923,7 +987,7 @@ class MacroApp:
         settled = len(steps) - 1 if follow else len(steps)
         start = sum(step.duration_ms for step in steps[:keep])
         for index in range(keep, len(steps)):
-            short = index < settled and steps[index].duration_ms < self.short_step_ms
+            short = index < settled and self._plays_short(steps[index].duration_ms)
             tree.insert("", "end", iid=str(index), values=self._row(index, start, steps[index]),
                         tags=("short",) if short else ())
             start += steps[index].duration_ms
@@ -938,9 +1002,8 @@ class MacroApp:
         self.summary_label.configure(text=self.tr("共 {count} 步，總長 {seconds:.2f} 秒").format(
             count=len(steps), seconds=total / 1000,
         ))
-        short = sum(step.duration_ms < self.short_step_ms for step in steps[:settled])
-        self.short_label.configure(text=self.tr("橘色 {short} 步：短於 {ms} ms").format(
-            short=short, ms=self.short_step_ms) if short else "")
+        self._short_steps = sum(self._plays_short(step.duration_ms) for step in steps[:settled])
+        self._update_short_note()
 
     def _selected_steps(self):
         return sorted(int(item) for item in self.step_tree.selection())
@@ -1004,8 +1067,12 @@ class MacroApp:
         duration_box = ttk.Spinbox(frame, from_=1, to=600000, increment=10, width=10,
                                    textvariable=duration)
         duration_box.grid(row=0, column=1, sticky="w", padx=(8, 0))
-        ttk.Label(frame, text=tr("遊戲每秒讀取輸入 {rate}：每個步驟建議至少 {ms} ms，太短可能讀不到。").format(
-            rate=self._rate_labels[self.settings.game_input_hz], ms=self.short_step_ms),
+        speed = float(self.settings.speed)
+        hint = ("遊戲每秒讀取輸入 {rate}：每個步驟建議至少 {ms} ms，太短可能讀不到。" if speed == 1
+                else "遊戲每秒讀取輸入 {rate}，速度 {speed:g}x：每個步驟建議至少 {ms} ms，太短可能讀不到。")
+        ttk.Label(frame, text=tr(hint).format(
+            rate=self._rate_labels[self.settings.game_input_hz], speed=speed,
+            ms=math.ceil(self.short_step_ms * speed)),
                   foreground="#666666").grid(row=1, column=0, columnspan=4, sticky="w", pady=(2, 8))
         ttk.Label(frame, text=tr("按鍵")).grid(row=2, column=0, sticky="nw")
         grid = ttk.Frame(frame)

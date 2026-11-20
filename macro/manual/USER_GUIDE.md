@@ -163,8 +163,10 @@ not always its frame rate: many fighting and action games read 60 times a
 second even when the screen runs at 144 FPS.
 
 Choose the game's rate in **Game input rate** under the step table; the
-**?** next to it explains it. Shorter steps are shown in orange, with a
-count next to the setting:
+**?** next to it explains it. Steps that play shorter than this at the
+current **Speed** are shown in orange, with a count next to the setting.
+When the macro repeats, a too short **Loop gap ms** is flagged the same
+way (its label turns orange):
 
 | Game input rate | Steps shown in orange |
 |---|---|

@@ -38,7 +38,7 @@ connection.stop()             # 送出 bye；S2P 清除此工具輸入
 | 讀取 | `get_input` 回傳 S2P 合併擴充輸入「之前」的輸出，工具不會讀回自己的輸入 |
 | 錯誤 | S2P 回覆 `error` 後會中斷連線；`AutoConnection` 會自動重試 |
 | 背景啟動 | S2P 自動啟動已啟用工具時設 `S2P_EXTENSION_BACKGROUND=1`，工具應不跳出視窗 |
-| 單一執行個體 | 「開啟」會再次啟動工具；工具應叫回原本的視窗而不是開第二份。新啟動的那份由 S2P 啟動，可以切換前景視窗，原本在執行的那份不行，所以新的那份要先呼叫 `AllowSetForegroundWindow(ASFW_ANY)` 再通知原本那份，然後結束。原本那份即使最小化或藏在系統匣，也要還原視窗、移到最前面並取得焦點。範例：`macro/s2p_macro/single_instance.py` 與 `MacroApp.show_window` |
+| 單一執行個體 | 「開啟」會再次啟動工具；工具應叫回原本的視窗而不是開第二份。新啟動的那份由 S2P 啟動，可以切換前景視窗，原本在執行的那份不行，所以新的那份要先以原本那份的程序 ID 呼叫 `AllowSetForegroundWindow`（由原本那份公布，例如放在具名共享記憶體），再通知原本那份，然後結束。原本那份即使最小化或藏在系統匣，也要還原視窗、移到最前面並取得焦點。範例：`macro/s2p_macro/single_instance.py` 與 `MacroApp.show_window` |
 | 更新檢查（必要） | 在 EXE 旁附上 `<EXE 名稱>.s2p.json`，寫明工具的 `name`、`version` 與 HTTPS 的 `update_url`，S2P 的 **檢查更新** 才能找到新版本。格式見 [工具清單檔與更新](https://github.com/duoduo-88/S2P-XInput-Lite/blob/v0.8.2/docs/extensions-ipc_zh-TW.md#工具清單檔與更新)。 |
 | 跟著 S2P 關閉 | `welcome` 帶有 `host_pid`（S2P 視窗程序）。給 `AutoConnection` 傳 `on_host_exit`（內部使用 `ProcessExitWatcher`），觸發時結束工具；只重新啟動連線不會觸發 |
 

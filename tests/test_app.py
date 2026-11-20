@@ -147,7 +147,7 @@ class MacroAppTests(unittest.TestCase):
         self.assertEqual([tree.item(item, "tags") for item in tree.get_children()],
                          [("short",), "", ("short",)])
         self.assertEqual(tree.set("1", "buttons"), "A + B")
-        self.assertEqual(self.app.short_label.cget("text"), "2 in orange: under 33 ms")
+        self.assertEqual(self.app.short_label.cget("text"), "2 in orange: under 33 ms as played")
         self.app.refresh_steps(steps=[Step(40, ("A",))])
         self.assertEqual(self.app.short_label.cget("text"), "")
 
@@ -172,7 +172,7 @@ class MacroAppTests(unittest.TestCase):
         self.assertEqual(self.app.short_label.cget("text"), "")
         self.app.game_input_var.set("30 Hz")  # as picked in the list
         self.app.set_game_input_rate()
-        self.assertEqual(self.app.short_label.cget("text"), "2 in orange: under 66 ms")
+        self.assertEqual(self.app.short_label.cget("text"), "2 in orange: under 66 ms as played")
         self.assertEqual(AppSettings.load(self.data / "settings.json").game_input_hz, 30)
         self.app.toggle_language()
         self.assertEqual(self.app.game_input_var.get(), "30 Hz")
@@ -189,6 +189,35 @@ class MacroAppTests(unittest.TestCase):
         self.assertTrue(help_tip.shown)
         help_tip.hide()
         self.assertFalse(help_tip.shown)
+        # The limits in the help come from GAME_INPUT_RATES.
+        for hz, ms in app_module.GAME_INPUT_RATES.items():
+            self.assertIn(f"{ms} ms at {hz} Hz", help_tip.text)
+
+    def test_short_marks_follow_the_playback_speed(self):
+        tree = self.app.step_tree
+        self.select("Buttons")  # two 30 ms steps, 60 Hz: short at 1x
+        self.assertEqual(tree.item("0", "tags"), ("short",))
+        self.app.speed_var.set("0.5x")  # plays 60 ms
+        self.app._speed_changed()
+        self.assertEqual(tree.item("0", "tags"), "")
+        self.assertEqual(self.app.short_label.cget("text"), "")
+        self.app.speed_var.set("2x")
+        self.app._speed_changed()
+        self.app.refresh_steps(steps=[Step(50, ("A",))])  # plays 25 ms
+        self.assertEqual(tree.item("0", "tags"), ("short",))
+
+    def test_a_short_loop_gap_is_flagged_when_repeating(self):
+        self.app.refresh_steps(steps=[Step(100, ("A",))])
+        self.app.loops_var.set("1")
+        self.app.gap_var.set("20")
+        self.assertEqual(self.app.short_label.cget("text"), "")  # played once: no gap
+        self.app.loops_var.set("5")
+        self.assertEqual(self.app.short_label.cget("text"), "Loop gap: under 33 ms as played")
+        self.assertEqual(str(self.app.gap_label.cget("foreground")), app_module.SHORT_STEP_COLOR)
+        self.app.gap_var.set("50")
+        self.assertEqual(self.app.short_label.cget("text"), "")
+        self.app.gap_var.set("0")  # no gap at all is the user's choice
+        self.assertEqual(self.app.short_label.cget("text"), "")
 
     def test_buttons_only_macro_plays_without_claiming_sticks(self):
         self.select("Buttons")

@@ -14,6 +14,11 @@ HEARTBEAT_SECONDS = 0.25   # S2P clears silent input after 1 s
 POLL_SECONDS = 0.004        # ~250 Hz, at or above S2P's input report rate
 DEFAULT_LOOP_GAP_MS = 50    # neutral gap so repeated presses are separate presses
 DEFAULT_STICK_DEADZONE = 1200
+# Reports skipped while reading on time only mean the controller reports
+# faster than POLL_SECONDS (500/1000 Hz pads); a change that short is not
+# something a game reliably sees either.  Skipped reports count as missed
+# only when two reads were further apart than this (the recorder stalled).
+MISSED_GAP_SECONDS = 0.02
 
 
 @contextmanager
@@ -75,8 +80,9 @@ class MacroRecorder:
         self.error = None
         self.first_input_at = None
         # get_input returns S2P's latest report, not a queue.  S2P numbers its
-        # reports, so a jump in "frame" between two reads counts the reports
-        # that were never seen (counted only once recording has started).
+        # reports, so a jump in "frame" across a stall (reads more than
+        # MISSED_GAP_SECONDS apart) counts the reports that were never seen
+        # (counted only once recording has started).
         self.frames_seen = 0
         self.frames_missed = 0
 
@@ -120,6 +126,7 @@ class MacroRecorder:
     def _run(self):
         last_frame = None
         last_state = None
+        last_read = None
         with fine_timer():
             while not self._stop.is_set():
                 try:
@@ -127,13 +134,15 @@ class MacroRecorder:
                 except Exception as exc:  # S2P closed, permission lost, ...
                     self.error = exc
                     break
+                now = self._clock()
+                stalled = last_read is not None and now - last_read > MISSED_GAP_SECONDS
+                last_read = now
                 frame = reply.get("frame", 0)
                 if frame and frame != last_frame:
-                    if self._events and last_frame is not None and frame > last_frame:
+                    if self._events and stalled and last_frame is not None and frame > last_frame:
                         self.frames_missed += frame - last_frame - 1
                     last_frame = frame  # a lower number: S2P restarted, no gap
                     state = state_from_input(reply, self._record_sticks, self._deadzone)
-                    now = self._clock()
                     if last_state is None or not state.same_input(last_state):
                         if self._events or not state.is_neutral:
                             if self.first_input_at is None:

@@ -8,28 +8,39 @@ the notification area while it keeps serving controller triggers.
 from __future__ import annotations
 
 import ctypes
+import mmap
+import os
+import struct
 import sys
 import threading
 
 EVENT_NAME = "Local\\S2P-Joystick-Macro.Show"
+PID_SUFFIX = ".Pid"  # named memory holding the running copy's process id
 ERROR_ALREADY_EXISTS = 183
 WAIT_OBJECT_0 = 0
 ASFW_ANY = 0xFFFFFFFF
+_PID = struct.Struct("<I")
 
 
-def allow_foreground_handoff():
-    """Let the running copy take the foreground when it shows its window.
+def _pid_memory(name):
+    """Named shared memory (one 32-bit process id) next to the event."""
+    return mmap.mmap(-1, _PID.size, tagname=name + PID_SUFFIX)
+
+
+def allow_foreground_handoff(pid):
+    """Let the running copy (``pid``) take the foreground when it shows its window.
 
     Windows only lets the foreground process (or one it just started) bring a
     window to the front.  This second copy was started by S2P's Open button or
     a double-click, so it may; the running copy in the background may not.
     Passing the right on before signalling makes the shown window come to the
-    front with focus instead of only flashing on the taskbar.
+    front with focus instead of only flashing on the taskbar.  Only when the
+    running copy's id is unknown is the right given to any process.
     """
     try:
         user32 = ctypes.WinDLL("user32")
         user32.AllowSetForegroundWindow.argtypes = (ctypes.c_ulong,)
-        user32.AllowSetForegroundWindow(ASFW_ANY)
+        user32.AllowSetForegroundWindow(pid or ASFW_ANY)
     except (AttributeError, OSError):
         pass
 
@@ -41,6 +52,7 @@ class SingleInstance:
         self._event = None
         self._stop = None
         self._thread = None
+        self._pid_memory = None
         self.primary = True
 
     def acquire(self):
@@ -61,16 +73,36 @@ class SingleInstance:
         if not event:
             return True  # cannot coordinate; just run
         if ctypes.get_last_error() == ERROR_ALREADY_EXISTS:
-            allow_foreground_handoff()
+            allow_foreground_handoff(self._running_pid())
             kernel32.SetEvent(event)
             kernel32.CloseHandle(event)
             self.primary = False
             return False
         self._event = event
+        self._publish_pid()
         self._stop = kernel32.CreateEventW(None, True, False, None)
         self._thread = threading.Thread(target=self._watch, name="S2P-MacroInstance", daemon=True)
         self._thread.start()
         return True
+
+    def _publish_pid(self):
+        try:
+            memory = _pid_memory(self._name)
+            memory[:] = _PID.pack(os.getpid())
+            self._pid_memory = memory  # kept open: the name lives while it is
+        except (OSError, ValueError):
+            self._pid_memory = None
+
+    def _running_pid(self):
+        """The running copy's process id, or 0 when it has not published it."""
+        try:
+            memory = _pid_memory(self._name)
+        except (OSError, ValueError):
+            return 0
+        try:
+            return _PID.unpack(memory[:])[0]
+        finally:
+            memory.close()
 
     def _watch(self):
         handles = (ctypes.c_void_p * 2)(self._event, self._stop)
@@ -90,3 +122,6 @@ class SingleInstance:
         if self._event:
             self._kernel32.CloseHandle(self._event)
             self._event = None
+        if self._pid_memory is not None:
+            self._pid_memory.close()
+            self._pid_memory = None

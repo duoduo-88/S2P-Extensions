@@ -103,6 +103,7 @@ def run_player(pipe, plan_path, result_path):
 
     done = threading.Event()
     outcome = {}
+    planned_seconds = sum(duration for duration, _buttons in plan) / 1000.0
 
     def on_finished(completed, error):
         outcome.update(completed=completed, error=None if error is None else repr(error))
@@ -110,7 +111,9 @@ def run_player(pipe, plan_path, result_path):
 
     player = MacroPlayer(send, client.release_all, clock=clock)
     player.play(steps, on_progress=on_progress, on_finished=on_finished)
-    done.wait()
+    if not done.wait(planned_seconds + 20.0):
+        player.stop()
+        outcome.update(error="playback did not finish in time")
     client.close()
     Path(result_path).write_text(json.dumps({"base": base[0], "sends": sends, **outcome}),
                                  encoding="utf-8")
@@ -129,6 +132,7 @@ class ReportLoop(threading.Thread):
         self.period = 1.0 / rate_hz
         self.reports = []      # (time, merged wButtons)
         self.lateness = []     # time the report came after its schedule
+        self.restarts = 0      # times the schedule restarted after a stall
         self._done = threading.Event()
 
     def run(self):
@@ -145,6 +149,11 @@ class ReportLoop(threading.Thread):
             now = time.perf_counter()  # pad.update() would run now
             reports.append((now, report.wButtons))
             lateness.append(now - due)
+            if now - due > self.period:
+                # More than a report behind: a real controller does not send
+                # the missed reports in a burst, so restart the schedule here.
+                due = now
+                self.restarts += 1
 
     def stop(self):
         self._done.set()
@@ -169,10 +178,13 @@ def play_through_s2p(rate_hz, plan):
         plan_path, result_path = Path(folder, "plan.json"), Path(folder, "result.json")
         plan_path.write_text(json.dumps(plan), encoding="utf-8")
         loop.start()
+        planned_seconds = sum(duration for duration, _buttons in plan) / 1000.0
         try:
             subprocess.run([sys.executable, __file__, "--player", pipe, str(plan_path),
-                            str(result_path)], check=True)
+                            str(result_path)], check=True, timeout=planned_seconds + 60.0)
             time.sleep(0.1)  # let the last step reach a report
+        except subprocess.TimeoutExpired:
+            raise SystemExit(f"the player did not finish within {planned_seconds + 60:.0f} s")
         finally:
             loop.stop()
             manager.close()
@@ -202,6 +214,9 @@ def percentile(values, fraction):
 
 def ms_summary(seconds):
     values = [value * 1000.0 for value in seconds]
+    if not values:
+        nan = float("nan")
+        return {"p50": nan, "p95": nan, "p99": nan, "max": nan, "min": nan, "mean": nan}
     return {
         "p50": percentile(values, 0.50), "p95": percentile(values, 0.95),
         "p99": percentile(values, 0.99), "max": max(values), "min": min(values),
@@ -307,7 +322,9 @@ def analyse_steps(plan, planned, sends, loop):
         "send_delay_ms": ms_summary([sends[i] - planned[i] for i in found]),
         "s2p_path_ms": ms_summary([appear[i] - sends[i] for i in found]),
         "held_error_ms": ms_summary(held),
-        "last_step_error_ms": (appear[found[-1]] - planned[found[-1]]) * 1000.0,
+        "last_step_error_ms": (
+            (appear[found[-1]] - planned[found[-1]]) * 1000.0 if found else float("nan")
+        ),
     }
 
 
@@ -334,6 +351,7 @@ def measure(rate_hz, args, rng):
     presses = analyse_short(args.lengths, order, args.gap, True, planned, sends, loop,
                             args.fps, args.trials, rng)
     lateness = ms_summary(loop.lateness)
+    restarts = loop.restarts
     releases = None
     if not args.no_releases:
         rng.shuffle(order)
@@ -341,6 +359,7 @@ def measure(rate_hz, args, rng):
         planned, sends, loop = play_through_s2p(rate_hz, short_plan(order, args.gap, False))
         releases = analyse_short(args.lengths, order, args.gap, False, planned, sends, loop,
                                  args.fps, args.trials, rng)
+        restarts += loop.restarts
 
     cycle = ["A", "B", "X", "Y"]
     step_plan = [[rng.randint(args.min_step, args.max_step), [cycle[index % 4]]]
@@ -348,6 +367,7 @@ def measure(rate_hz, args, rng):
     print(f"timing: {len(step_plan)} steps ...", flush=True)
     planned, sends, loop = play_through_s2p(rate_hz, step_plan)
     timing = analyse_steps(step_plan, planned, sends, loop)
+    restarts += loop.restarts
 
     print("short presses (A held between neutral gaps):")
     print_presses(presses, args.fps)
@@ -356,12 +376,12 @@ def measure(rate_hz, args, rng):
         print_presses(releases, args.fps)
     print_timing(timing)
     print(f"report thread lateness ms: p50 {lateness['p50']:.2f}  p99 {lateness['p99']:.2f}"
-          f"  max {lateness['max']:.2f}")
+          f"  max {lateness['max']:.2f}  schedule restarts after a stall: {restarts}")
     needed = {"presses": {str(f): needed_length(presses, f) for f in args.fps}}
     if releases is not None:
         needed["releases"] = {str(f): needed_length(releases, f) for f in args.fps}
     return {"rate_hz": rate_hz, "presses": presses, "releases": releases, "timing": timing,
-            "report_lateness_ms": lateness, "needed_ms": needed}
+            "report_lateness_ms": lateness, "report_restarts": restarts, "needed_ms": needed}
 
 
 def print_presses(rows, fps):

@@ -23,11 +23,19 @@ EN = {
     "左搖桿": "Left stick",
     "右搖桿": "Right stick",
     "共 {count} 步，總長 {seconds:.2f} 秒": "{count} steps, {seconds:.2f} s total",
-    "橘色 {short} 步：短於 {ms} ms": "{short} in orange: under {ms} ms",
+    "橘色 {short} 步：播放時短於 {ms} ms": "{short} in orange: under {ms} ms as played",
+    "橘色 {short} 步與循環間隔：播放時短於 {ms} ms": (
+        "{short} in orange and the loop gap: under {ms} ms as played"
+    ),
+    "循環間隔：播放時短於 {ms} ms": "Loop gap: under {ms} ms as played",
+    "{rate} 為 {ms} ms": "{ms} ms at {rate}",
+    "遊戲每秒讀取輸入 {rate}，速度 {speed:g}x：每個步驟建議至少 {ms} ms，太短可能讀不到。": (
+        "The game reads input at {rate}; at {speed:g}x keep each step at least {ms} ms."
+    ),
     "遊戲讀取輸入": "Game input rate",
     (
         "遊戲每秒讀取手把幾次，不一定等於畫面 FPS；例如格鬥遊戲常固定每秒 60 次。\n\n"
-        "短於下列長度的步驟會以橘色標示：30 Hz 為 66 ms，60 Hz 為 33 ms，144 Hz 以上為 16 ms。\n\n"
+        "播放時短於下列長度的步驟會以橘色標示：{limits}。\n\n"
         "不確定時選 60 Hz，或用巨集實測：\n"
         "1. 播放 20 次 10 ms 的短按，循環間隔 100 ms 以上，並比該動作的冷卻時間長。\n"
         "2. 數遊戲做出反應的次數，例如角色跳了幾下、開了幾槍。\n"
@@ -35,8 +43,7 @@ EN = {
     ): (
         "How many times a second the game reads the controller. This is not always its "
         "frame rate; fighting games, for example, often read 60 times a second.\n\n"
-        "Steps shorter than this are shown in orange: 66 ms at 30 Hz, 33 ms at 60 Hz, "
-        "16 ms at 144 Hz or more.\n\n"
+        "Steps that play shorter than this are shown in orange: {limits}.\n\n"
         "Not sure? Choose 60 Hz, or test it with a macro:\n"
         "1. Play a 10 ms press 20 times with a loop gap of 100 ms or more, longer than "
         "the action's cooldown.\n"
