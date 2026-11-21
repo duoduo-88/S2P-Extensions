@@ -62,11 +62,11 @@ Keep the existing data files in each tool folder (for S2P-Joystick-Macro:
 
 ### 2.1 Add and enable a tool
 
-1. In S2P-XInput-Lite, select **Extensions** at the bottom of the main window
-   and check **Enable Extensions**.
+1. In S2P-XInput-Lite, select **Extensions** at the bottom of the main window.
 2. Select **Add Tool...** and choose the tool's EXE, for example
-   `S2P-Joystick-Macro\S2P-Joystick-Macro.exe`. You can add several tools; up
-   to 4 can be enabled at the same time.
+   `S2P-Joystick-Macro\S2P-Joystick-Macro.exe`. A new tool is enabled in the
+   list right away. You can add several tools; up to 4 can be enabled at the
+   same time.
 3. Select the tool in the list and set its **Permissions** (see 2.2).
 4. Select **Open** to show the tool's window.
 
@@ -86,14 +86,26 @@ After a permission change the tool reconnects by itself.
 
 ### 2.3 Conflict check
 
-**Conflict check** lists the same EXE added twice, more than 4 enabled tools,
-a tool without any permission, and two tools that want the same stick.
+**Conflict check** lists every problem that keeps a tool from working as
+expected:
+
+- In the settings: the same EXE added twice, more than 4 enabled tools, or a
+  tool without any permission.
+- While tools run: a tool that was refused a stick because another tool
+  controls it (listed until that tool releases the stick), a tool that asks
+  for a permission you have not allowed, a second copy of a running tool,
+  a program that is not in the list trying to connect, and another program
+  holding S2P's pipe.
+
+Running tools are checked only while the S2P connection runs. Buttons and
+triggers never conflict: buttons are combined and triggers take the
+larger value.
 
 ### 2.4 Connection states
 
 | State in S2P | Meaning |
 |---|---|
-| **Disabled** | Extensions or this tool is not enabled. |
+| **Disabled** | This tool is disabled in the list. |
 | **Waiting for connection** | S2P is waiting for the tool. Also shown while the S2P connection is not running. |
 | **Connected** | The tool is connected. "input timed out" means the tool was silent for over 1 s and its input was cleared. |
 | **Disconnected** | The tool closed. |
@@ -146,7 +158,7 @@ gyro and button mapping keep working as before.
 
 | Problem | What to do |
 |---|---|
-| The tool says **Waiting for S2P-XInput-Lite…** | Make sure S2P-XInput-Lite v0.8.2 or later is running, its connection is started, and **Enable Extensions** is checked. |
+| The tool says **Waiting for S2P-XInput-Lite…** | Make sure S2P-XInput-Lite v0.8.2 or later is running, its connection is started, and the tool is enabled in the Extensions list. |
 | **unauthorized** | Add this exact EXE in S2P's Extensions window. A copy in another folder counts as a different tool. |
 | **another extension tool controls the same stick** | Another enabled tool claimed that stick. Disable one of them or let one tool control the stick. |
 | **S2P granted no permission** | Check at least one permission for the tool in S2P. |
@@ -154,7 +166,7 @@ gyro and button mapping keep working as before.
 | **another copy of this tool is running** | Close the other copy, or use the one that is already running. |
 | **incompatible protocol version** | Update S2P-XInput-Lite and the tool to matching releases. |
 | A feature needs reading but nothing happens | Check **Allow reading controller state** for the tool in S2P. |
-| Input gets stuck or a game behaves oddly | Close the tool or uncheck **Enable Extensions** in S2P; S2P clears all tool input at once. |
+| Input gets stuck or a game behaves oddly | Close the tool or disable it in S2P's Extensions list; S2P clears its input at once. |
 
 ## 6. Responsibility
 

@@ -44,7 +44,7 @@ class S2PIntegrationTests(unittest.TestCase):
         self.addCleanup(self.manager.close)
 
     def enable(self, **options):
-        self.manager.apply(self.bridge.ExtensionSettings(True, (
+        self.manager.apply(self.bridge.ExtensionSettings((
             self.bridge.ToolSettings("macro", r"C:\S2P-Joystick-Macro.exe", **options),
         )))
 

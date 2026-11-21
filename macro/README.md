@@ -23,8 +23,8 @@ own and does not modify S2P.
 
 1. Put `S2P-Joystick-Macro.exe` in any folder. Macros and settings are kept
    next to it in `macros\` and `settings.json`.
-2. In S2P-XInput-Lite, open **Extensions**, check **Enable Extensions**, select
-   **Add Tool...**, and choose `S2P-Joystick-Macro.exe`.
+2. In S2P-XInput-Lite, open **Extensions**, select **Add Tool...**, and
+   choose `S2P-Joystick-Macro.exe`. It is enabled in the list right away.
 3. To record, select it in the list and check **Allow reading controller
    state** under **Permissions** (off by default). The tool reconnects by
    itself after a permission change.

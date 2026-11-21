@@ -23,9 +23,9 @@ The user guides are online:
 
 1. Put the whole `S2P-Extensions` folder anywhere. Each tool keeps its
    settings in its own folder.
-2. In S2P-XInput-Lite, open **Extensions**, check **Enable Extensions**, select
-   **Add Tool...**, and choose the tool's EXE. Up to 4 tools can be enabled at
-   the same time.
+2. In S2P-XInput-Lite, open **Extensions**, select **Add Tool...**, and choose
+   the tool's EXE; it is enabled in the list right away. Up to 4 tools can be
+   enabled at the same time.
 3. Grant the permissions the tool needs under **Permissions**, then choose
    **Open**.
 4. Enabled tools start in the background when the S2P connection starts, and

@@ -170,7 +170,7 @@ def play_through_s2p(rate_hz, plan):
                                       pipe_name=pipe)
     manager.launch_tool = lambda tool_id, reopen=False, background=False: True
     manager._launch_tokens[TOKEN] = "macro"
-    manager.apply(bridge.ExtensionSettings(True, (
+    manager.apply(bridge.ExtensionSettings((
         bridge.ToolSettings("macro", r"C:\S2P-Joystick-Macro.exe"),
     )))
     loop = ReportLoop(manager._hub, rate_hz)
