@@ -28,7 +28,7 @@ S2P 仍是唯一的虛擬 XInput 手把輸出。S2P 不需要這些工具也能�
 powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
 ```
 
-會先跑測試、建置每個工具，再產生 `dist\S2P-Extensions-v<VERSION>.zip`。zip 內只有一個 `S2P-Extensions\`
+會先跑測試、建置每個工具，再產生 `dist\S2P-Extensions-<VERSION>.zip`。zip 內只有一個 `S2P-Extensions\`
 資料夾，裡面是 `release/` 的使用說明，以及每個工具各自的子資料夾
 （例如 `S2P-Extensions\S2P-Joystick-Macro\S2P-Joystick-Macro.exe` 與它的說明）。發佈版本號寫在 `VERSION`。
 

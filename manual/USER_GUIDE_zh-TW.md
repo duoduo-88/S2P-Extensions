@@ -30,7 +30,7 @@
 
 ### 1.2 安裝
 
-1. 到 [Releases](https://github.com/duoduo-88/S2P-Extensions/releases) 頁面下載 `S2P-Extensions-v<版本>.zip`。
+1. 到 [Releases](https://github.com/duoduo-88/S2P-Extensions/releases) 頁面下載 `S2P-Extensions-<版本>.zip`。
 2. 解壓縮到任意位置，並保持 **S2P-Extensions** 資料夾完整。
 
 ```text

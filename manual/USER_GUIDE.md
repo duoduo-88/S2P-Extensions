@@ -30,7 +30,7 @@ troubleshooting. Each tool has its own guide for using the tool itself.
 
 ### 1.2 Installation
 
-1. Download `S2P-Extensions-v<version>.zip` from the
+1. Download `S2P-Extensions-<version>.zip` from the
    [Releases](https://github.com/duoduo-88/S2P-Extensions/releases) page.
 2. Extract it anywhere and keep the **S2P-Extensions** folder together.
 

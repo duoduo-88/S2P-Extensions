@@ -1,6 +1,6 @@
 # Build every tool and pack them into one release zip:
 #
-#   S2P-Extensions-v<Version>.zip
+#   S2P-Extensions-<Version>.zip
 #   └─ S2P-Extensions\
 #      ├─ LICENSE, README.md, README_zh-TW.md
 #      └─ <Tool>\<Tool>.exe, <Tool>.s2p.json, README.md, README_zh-TW.md
@@ -62,7 +62,10 @@ $manifests = @(foreach ($tool in $tools) { Join-Path $root "$($tool.Name)\$($too
 & $Python (Join-Path $repo "scripts\tool_manifest.py") feed $Version $feed $manifests
 if ($LASTEXITCODE -ne 0) { throw "Could not write the update feed." }
 
-$zip = Join-Path $repo "dist\S2P-Extensions-v$Version.zip"
+# No "v" before the version: GitHub sorts release assets by name, and a digit
+# keeps the zip ahead of s2p-extensions-updates.json, which S2P needs on the
+# latest release but users should not download.
+$zip = Join-Path $repo "dist\S2P-Extensions-$Version.zip"
 $hashPath = "$zip.sha256"
 foreach ($old in @($zip, $hashPath)) {
     if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force }

@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File scripts\package_release.ps1
 ```
 
 This runs the tests, builds every tool, and writes
-`dist\S2P-Extensions-v<VERSION>.zip`. The zip holds one `S2P-Extensions\`
+`dist\S2P-Extensions-<VERSION>.zip`. The zip holds one `S2P-Extensions\`
 folder with the user READMEs from `release/` and a subfolder per tool
 (`S2P-Extensions\S2P-Joystick-Macro\S2P-Joystick-Macro.exe` and its READMEs).
 The release version is in `VERSION`.
